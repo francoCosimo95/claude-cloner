@@ -27,5 +27,5 @@ body:
     id: output
     attributes:
       label: Command output
-      description: Paste the output of the failing command and of `claude-profiles list`. Remove anything private.
+      description: Paste the output of the failing command and of `cloner list`. Remove anything private.
       render: shell

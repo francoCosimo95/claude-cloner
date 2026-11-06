@@ -25,7 +25,7 @@ If a change trades one of these for another, say so in the pull request.
 
 | Path | What |
 | --- | --- |
-| `claude-profiles` | the whole tool |
+| `cloner` | the whole tool |
 | `tests/smoke.sh` | end to end test with a fake Claude app, no real Claude needed |
 | `docs/` | README graphics |
 | `.github/` | issue and pull request templates, CI |
@@ -36,7 +36,7 @@ If a change trades one of these for another, say so in the pull request.
 ./tests/smoke.sh
 ```
 
-The smoke test builds a fake `Claude.app` in a temp folder and runs `add`, `list`, `update`, `remove` against it, so your real Claude and your real profiles stay untouched. All paths can be redirected with `CLAUDE_PROFILES_HOME`, `CLAUDE_PROFILES_APPS` and `CLAUDE_PROFILES_SOURCE`.
+The smoke test builds a fake `Claude.app` in a temp folder and runs `add`, `list`, `update`, `remove` against it, so your real Claude and your real profiles stay untouched. All paths can be redirected with `CLAUDE_CLONER_HOME`, `CLAUDE_CLONER_APPS` and `CLAUDE_CLONER_SOURCE`.
 
 ## Pull requests
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-# claude-profiles
+# claude-cloner
 
 **Two Claudes. Two accounts. One Mac. Zero logging out.**
 
@@ -10,7 +10,7 @@ One shell script. No installer, no dependencies, nothing to compile.
 
 An open source side project by [Cosimo Franco](https://github.com/francoCosimo95). Contributions welcome.
 
-[![CI](https://github.com/francoCosimo95/claude-profiles/actions/workflows/ci.yml/badge.svg)](https://github.com/francoCosimo95/claude-profiles/actions/workflows/ci.yml)
+[![CI](https://github.com/francoCosimo95/claude-cloner/actions/workflows/ci.yml/badge.svg)](https://github.com/francoCosimo95/claude-cloner/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
 [![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](#faq)
@@ -34,10 +34,10 @@ I built this for myself, because I live exactly that double life. Now each accou
 ## Quick start
 
 ```bash
-git clone https://github.com/francoCosimo95/claude-profiles.git
-cd claude-profiles
-./claude-profiles add
-./claude-profiles add
+git clone https://github.com/francoCosimo95/claude-cloner.git
+cd claude-cloner
+./cloner add
+./cloner add
 ```
 
 That is it: you now have **Claude 2** and **Claude 3** next to your regular Claude. Open them from Spotlight or Launchpad, sign in once, done. The login sticks.
@@ -46,7 +46,7 @@ To use the command from anywhere:
 
 ```bash
 mkdir -p ~/.local/bin
-cp claude-profiles ~/.local/bin/
+cp cloner ~/.local/bin/
 ```
 
 | **Easy** | **Tiny** | **Native** | **Safe** | **Fast** |
@@ -66,7 +66,7 @@ cp claude-profiles ~/.local/bin/
 - **A colored badge on the icon.** Blue 2, green 3, purple 4... you know which window is which before you even look.
 - **Always up to date.** Opening a profile checks your installed Claude first and rebuilds its copy if yours is newer.
 - **Practically free on disk.** Copies are APFS clones, so a new profile starts out using almost no extra space.
-- **Claude Code included.** `claude-profiles cli 2` gives your terminal a separate login per profile too.
+- **Claude Code included.** `cloner cli 2` gives your terminal a separate login per profile too.
 
 ## Commands
 
@@ -74,21 +74,21 @@ Profiles are numbered. Your regular Claude is the first one, so profiles start a
 
 | Command | What it does |
 | --- | --- |
-| `claude-profiles add [number]` | Create a profile: the next free number, or the one you give |
-| `claude-profiles open <number>` | Open a profile, updating it first if needed |
-| `claude-profiles list` | See your profiles, their versions and what is running |
-| `claude-profiles update [number] [--force]` | Refresh profile copies from your installed Claude |
-| `claude-profiles remove <number> [--keep-data]` | Delete a profile, including its login and data |
-| `claude-profiles cli <number> [args...]` | Run the Claude Code CLI with the profile's own login |
+| `cloner add [number]` | Create a profile: the next free number, or the one you give |
+| `cloner open <number>` | Open a profile, updating it first if needed |
+| `cloner list` | See your profiles, their versions and what is running |
+| `cloner update [number] [--force]` | Refresh profile copies from your installed Claude |
+| `cloner remove <number> [--keep-data]` | Delete a profile, including its login and data |
+| `cloner cli <number> [args...]` | Run the Claude Code CLI with the profile's own login |
 
 `add` always takes the lowest free number. Have 2 and 4, delete 4, add again, and you get 4 back. Have 2 and 4, and `add` gives you 3.
 
 ```
-$ claude-profiles list
+$ cloner list
 PROFILE   VERSION      STATE
 2         4.4212.0     running
 4         4.4212.0     closed
-$ claude-profiles add
+$ cloner add
 Profile 3 is ready.
 ```
 
@@ -105,10 +105,10 @@ After 9 the cycle starts over, so 10 is blue again.
 ## Claude Code in the terminal
 
 ```bash
-claude-profiles cli 2
+cloner cli 2
 ```
 
-It starts the `claude` command with `CLAUDE_CONFIG_DIR` pointing inside the profile, so your terminal login stays separate too. Arguments pass straight through: `claude-profiles cli 2 --help`.
+It starts the `claude` command with `CLAUDE_CONFIG_DIR` pointing inside the profile, so your terminal login stays separate too. Arguments pass straight through: `cloner cli 2 --help`.
 
 ## How it works
 
@@ -116,7 +116,7 @@ Claude is an Electron app, and Electron keeps its state in a "user data" folder 
 
 ```mermaid
 flowchart LR
-    L["Launcher: Claude 2.app"] --> R["claude-profiles open 2"]
+    L["Launcher: Claude 2.app"] --> R["cloner open 2"]
     R --> C{"Installed Claude newer?"}
     C -- yes --> B["Rebuild the profile copy and its badge icon"]
     C -- no --> O
@@ -124,9 +124,9 @@ flowchart LR
     O --> A["Claude, signed in as profile 2"]
 ```
 
-For each profile, `claude-profiles`:
+For each profile, `cloner`:
 
-1. **Copies** `Claude.app` into `~/.claude-profiles/profiles/<number>/` as an APFS clone.
+1. **Copies** `Claude.app` into `~/.claude-cloner/profiles/<number>/` as an APFS clone.
 2. **Opens** that copy with `open -n --user-data-dir=<profile>/data`, so it gets its own login and settings.
 3. **Badges** the copy with a custom icon, set through Finder metadata (the same thing "Get Info" does when you paste an icon).
 4. **Launches** through a tiny app that calls the script. Every start compares your installed Claude with the copy, and rebuilds the copy first when yours is newer.
@@ -135,8 +135,8 @@ Your original Claude is never touched, and neither is the inside of the copy, so
 
 ```
 /Applications/Claude.app                  your Claude, never modified
-~/.claude-profiles/
-  bin/claude-profiles                     runtime used by the launchers
+~/.claude-cloner/
+  bin/cloner                     runtime used by the launchers
   profiles/2/
     Claude.app                            APFS clone of your Claude
     data/                                 this profile's login and settings
@@ -163,7 +163,7 @@ Yes. The script only reads `/Applications/Claude.app` to make copies. Your origi
 It looks like one, but on APFS (the default on every recent Mac) the copy is a clone that shares disk blocks with the original. When Claude updates and a profile is rebuilt, it becomes a clone of the new version.
 
 **Do profiles update themselves?**
-Opening one from its launcher checks your installed Claude first and rebuilds when yours is newer. A profile that is already running is left alone until you close it. You can also run `claude-profiles update` any time.
+Opening one from its launcher checks your installed Claude first and rebuilds when yours is newer. A profile that is already running is left alone until you close it. You can also run `cloner update` any time.
 
 **Why does the Dock still say "Claude"?**
 The Dock label comes from the app's own metadata, and editing that breaks the app. The badge on the icon is how you tell instances apart.
@@ -172,7 +172,7 @@ The Dock label comes from the app's own metadata, and editing that breaks the ap
 When you sign in, Claude opens your browser, and your browser is already signed in to claude.ai with your main account, so it approves that one. Open the sign-in link in a private window, or switch account on the browser page, and use the account you want for this profile. Claude Code inside the app is kept separate by the profile itself.
 
 **Where do my logins live?**
-In `~/.claude-profiles/profiles/<number>/data`, on your Mac. Nothing leaves your machine.
+In `~/.claude-cloner/profiles/<number>/data`, on your Mac. Nothing leaves your machine.
 
 **What does it need?**
 macOS and Claude desktop at `/Applications/Claude.app`. The script uses `bash`, `osascript`, `sips`, `iconutil`, `codesign` and `cp`, all part of macOS. That is why the dependency count is zero.
@@ -180,13 +180,13 @@ macOS and Claude desktop at `/Applications/Claude.app`. The script uses `bash`, 
 **How do I remove a profile, or everything?**
 
 ```bash
-claude-profiles remove 2
+cloner remove 2
 ```
 
 That deletes the launcher, the app copy and the login and data of profile 2. Add `--keep-data` to keep the login, so adding 2 again brings it right back. To remove everything:
 
 ```bash
-rm -rf ~/.claude-profiles ~/Applications/Claude\ [0-9]*.app
+rm -rf ~/.claude-cloner ~/Applications/Claude\ [0-9]*.app
 ```
 
 ## Roadmap
@@ -194,7 +194,7 @@ rm -rf ~/.claude-profiles ~/Applications/Claude\ [0-9]*.app
 Ideas, in no particular order. Want one? Open an issue and say so, so nobody does the same work twice.
 
 - [ ] Homebrew tap, for `brew install`
-- [ ] `claude-profiles doctor`, to check what is wrong with a profile
+- [ ] `cloner doctor`, to check what is wrong with a profile
 - [ ] Shell completions
 - [ ] Verified Intel support
 - [ ] Tests that run in CI

@@ -1,5 +1,5 @@
 name: Feature request
-description: An idea to make claude-profiles better
+description: An idea to make claude-cloner better
 labels: [enhancement]
 body:
   - type: textarea

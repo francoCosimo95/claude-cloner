@@ -42,6 +42,6 @@
 
     <rect x="64" y="296" width="832" height="44" rx="12" fill="#0a0c10" stroke="#252a33"/>
     <text x="88" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#8b93a1">$</text>
-    <text x="108" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#e6e9ef">claude-profiles add &amp;&amp; claude-profiles add</text>
+    <text x="108" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#e6e9ef">cloner add &amp;&amp; cloner add</text>
   </g>
 </svg>

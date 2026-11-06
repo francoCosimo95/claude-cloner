@@ -1,33 +1,33 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="0.2.1"
-ROOT="${CLAUDE_PROFILES_HOME:-$HOME/.claude-profiles}"
-APPS_DIR="${CLAUDE_PROFILES_APPS:-$HOME/Applications}"
-SOURCE_APP="${CLAUDE_PROFILES_SOURCE:-/Applications/Claude.app}"
-RUNTIME="$ROOT/bin/claude-profiles"
+VERSION="0.3.0"
+ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
+APPS_DIR="${CLAUDE_CLONER_APPS:-$HOME/Applications}"
+SOURCE_APP="${CLAUDE_CLONER_SOURCE:-/Applications/Claude.app}"
+RUNTIME="$ROOT/bin/cloner"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
 die() {
-  echo "claude-profiles: $*" >&2
+  echo "cloner: $*" >&2
   exit 1
 }
 
 usage() {
   cat <<EOF
-claude-profiles $VERSION
+cloner $VERSION
 
 Run several Claude desktop instances side by side, each with its own login.
 Profiles are numbered from 2 (your regular Claude is the first one).
 
 Usage:
-  claude-profiles add [number]                   create a profile: the next free number, or the one you give
-  claude-profiles open <number>                  open a profile (updates it first if needed)
-  claude-profiles list                           show profiles, versions and state
-  claude-profiles update [number] [--force]      refresh profile copies from the installed Claude
-  claude-profiles remove <number> [--keep-data]  delete a profile, including its login and data
-  claude-profiles cli <number> [args...]         run the Claude Code CLI with the profile's own login
-  claude-profiles version
+  cloner add [number]                   create a profile: the next free number, or the one you give
+  cloner open <number>                  open a profile (updates it first if needed)
+  cloner list                           show profiles, versions and state
+  cloner update [number] [--force]      refresh profile copies from the installed Claude
+  cloner remove <number> [--keep-data]  delete a profile, including its login and data
+  cloner cli <number> [args...]         run the Claude Code CLI with the profile's own login
+  cloner version
 
 Launcher apps are created in $APPS_DIR.
 Profile data lives in $ROOT.
@@ -59,7 +59,7 @@ profile_exists() {
 
 require_profile() {
   valid_number "$1" || die "invalid profile number: '$1' (profiles start at 2)"
-  profile_exists "$1" || die "no profile $1 (see: claude-profiles list)"
+  profile_exists "$1" || die "no profile $1 (see: cloner list)"
 }
 
 launcher_path() {
@@ -169,7 +169,7 @@ JXA
 
 run_jxa() {
   local script out rc=0
-  script="$(mktemp "${TMPDIR:-/tmp}/claude-profiles.XXXXXX")"
+  script="$(mktemp "${TMPDIR:-/tmp}/cloner.XXXXXX")"
   emit_jxa >"$script"
   out="$(osascript -l JavaScript "$script" "$@" 2>&1)" || rc=$?
   rm -f "$script"
@@ -188,7 +188,7 @@ icon_source() {
 
 build_icon() {
   local badge="$1" output="$2" work spec
-  work="$(mktemp -d "${TMPDIR:-/tmp}/claude-profiles.XXXXXX")"
+  work="$(mktemp -d "${TMPDIR:-/tmp}/cloner.XXXXXX")"
   mkdir -p "$work/badge.iconset"
   run_jxa render "$(icon_source)" "$work/master.png" "$badge"
   for spec in "16 icon_16x16" "32 icon_16x16@2x" "32 icon_32x32" "64 icon_32x32@2x" \
@@ -259,7 +259,7 @@ EOF
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key><string>launcher</string>
-  <key>CFBundleIdentifier</key><string>io.github.claude-profiles.p$number</string>
+  <key>CFBundleIdentifier</key><string>io.github.claude-cloner.p$number</string>
   <key>CFBundleName</key><string>Claude $number</string>
   <key>CFBundleDisplayName</key><string>Claude $number</string>
   <key>CFBundleIconFile</key><string>icon</string>
@@ -275,7 +275,7 @@ EOF
 
 cmd_add() {
   local number=""
-  [ $# -le 1 ] || die "usage: claude-profiles add [number]"
+  [ $# -le 1 ] || die "usage: cloner add [number]"
   if [ $# -eq 1 ]; then
     number="$1"
     valid_number "$number" || die "invalid profile number: '$number' (profiles start at 2)"
@@ -293,12 +293,12 @@ cmd_add() {
   create_launcher "$number"
   echo "Profile $number is ready."
   echo "Open it from: $(launcher_path "$number")"
-  echo "or run:       claude-profiles open $number"
+  echo "or run:       cloner open $number"
 }
 
 cmd_open() {
   local dir
-  [ $# -eq 1 ] || die "usage: claude-profiles open <number>"
+  [ $# -eq 1 ] || die "usage: cloner open <number>"
   require_profile "$1"
   require_source
   dir="$(profile_dir "$1")"
@@ -366,10 +366,10 @@ cmd_remove() {
       *) number="$arg" ;;
     esac
   done
-  [ -n "$number" ] || die "usage: claude-profiles remove <number> [--keep-data]"
+  [ -n "$number" ] || die "usage: cloner remove <number> [--keep-data]"
   valid_number "$number" || die "invalid profile number: '$number' (profiles start at 2)"
   dir="$(profile_dir "$number")"
-  [ -d "$dir" ] || die "no profile $number (see: claude-profiles list)"
+  [ -d "$dir" ] || die "no profile $number (see: cloner list)"
   is_running "$dir" && die "profile $number is running, close it first"
   rm -rf "$(launcher_path "$number")"
   if [ "$keep" = "yes" ]; then
@@ -382,7 +382,7 @@ cmd_remove() {
 }
 
 cmd_cli() {
-  [ $# -ge 1 ] || die "usage: claude-profiles cli <number> [args...]"
+  [ $# -ge 1 ] || die "usage: cloner cli <number> [args...]"
   local number="$1"
   shift
   require_profile "$number"
@@ -401,7 +401,7 @@ main() {
     list | ls) cmd_list ;;
     remove | rm) cmd_remove "$@" ;;
     cli) cmd_cli "$@" ;;
-    version | --version | -v) echo "claude-profiles $VERSION" ;;
+    version | --version | -v) echo "cloner $VERSION" ;;
     help | --help | -h) usage ;;
     *) usage >&2; exit 1 ;;
   esac

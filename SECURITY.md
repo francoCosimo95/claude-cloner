@@ -2,11 +2,11 @@
 
 ## What this tool touches
 
-- It reads `/Applications/Claude.app` and makes copies under `~/.claude-profiles`.
+- It reads `/Applications/Claude.app` and makes copies under `~/.claude-cloner`.
 - It creates launcher apps in `~/Applications`.
 - It never modifies the original Claude app and never sends anything over the network.
 
-Each profile folder holds that account's login and data. Treat `~/.claude-profiles` like you treat your Claude login: do not share it, sync it to public places or commit it.
+Each profile folder holds that account's login and data. Treat `~/.claude-cloner` like you treat your Claude login: do not share it, sync it to public places or commit it.
 
 ## Reporting a vulnerability
 

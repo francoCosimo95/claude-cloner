@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-06
+
+### Changed
+
+- Renamed to claude-cloner. The command is now `cloner`, data lives in `~/.claude-cloner`, and the environment variables are `CLAUDE_CLONER_HOME`, `CLAUDE_CLONER_APPS` and `CLAUDE_CLONER_SOURCE`.
+
 ## [0.2.1] - 2026-11-06
 
 ### Fixed

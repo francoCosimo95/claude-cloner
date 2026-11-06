@@ -11,11 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Syntax
-        run: bash -n claude-profiles tests/smoke.sh
+        run: bash -n cloner tests/smoke.sh
       - name: CLI starts
         run: |
-          ./claude-profiles version
-          ./claude-profiles help
+          ./cloner version
+          ./cloner help
       - name: No em dash characters
         run: |
           if grep -rn $'\xe2\x80\x94' --exclude-dir=.git .; then exit 1; fi
