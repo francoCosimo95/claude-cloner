@@ -1,0 +1,415 @@
+#!/bin/bash
+set -euo pipefail
+
+VERSION="0.1.0"
+ROOT="${CLAUDE_PROFILES_HOME:-$HOME/.claude-profiles}"
+APPS_DIR="${CLAUDE_PROFILES_APPS:-$HOME/Applications}"
+SOURCE_APP="${CLAUDE_PROFILES_SOURCE:-/Applications/Claude.app}"
+RUNTIME="$ROOT/bin/claude-profiles"
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+
+die() {
+  echo "claude-profiles: $*" >&2
+  exit 1
+}
+
+usage() {
+  cat <<EOF
+claude-profiles $VERSION
+
+Run several Claude desktop instances side by side, each with its own login.
+
+Usage:
+  claude-profiles add <name> [--badge TEXT]   create a profile and its launcher app
+  claude-profiles open <name>                 open a profile (updates it first if needed)
+  claude-profiles list                        show profiles, versions and state
+  claude-profiles update [name] [--force]     refresh profile copies from the installed Claude
+  claude-profiles remove <name> [--purge]     delete a profile (--purge also deletes its login and data)
+  claude-profiles cli <name> [args...]        run the Claude Code CLI with the profile's own login
+  claude-profiles version
+
+Launcher apps are created in $APPS_DIR.
+Profile data lives in $ROOT.
+EOF
+}
+
+require_macos() {
+  [ "$(uname -s)" = "Darwin" ] || die "this tool only works on macOS"
+}
+
+require_source() {
+  [ -d "$SOURCE_APP" ] || die "Claude desktop not found at $SOURCE_APP"
+}
+
+valid_name() {
+  case "$1" in
+    "" | bin | -* | *[!A-Za-z0-9._-]*) return 1 ;;
+  esac
+  return 0
+}
+
+profile_dir() {
+  echo "$ROOT/profiles/$1"
+}
+
+profile_exists() {
+  [ -f "$(profile_dir "$1")/badge" ]
+}
+
+require_profile() {
+  valid_name "$1" || die "invalid profile name: '$1'"
+  profile_exists "$1" || die "no profile named '$1' (see: claude-profiles list)"
+}
+
+launcher_path() {
+  echo "$APPS_DIR/Claude $1.app"
+}
+
+app_version() {
+  local plist="$1/Contents/Info.plist"
+  [ -f "$plist" ] || return 0
+  /usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$plist" 2>/dev/null || true
+}
+
+is_running() {
+  pgrep -f "$1/Claude.app/Contents/MacOS/" >/dev/null 2>&1
+}
+
+emit_jxa() {
+  cat <<'JXA'
+ObjC.import('AppKit');
+ObjC.import('CoreGraphics');
+
+var PALETTE = [
+  [0.12, 0.45, 0.95],
+  [0.13, 0.62, 0.31],
+  [0.55, 0.31, 0.85],
+  [0.90, 0.25, 0.55],
+  [0.04, 0.63, 0.68],
+  [0.85, 0.18, 0.18],
+  [0.88, 0.60, 0.04],
+  [0.26, 0.31, 0.45]
+];
+
+function badgeColor(text) {
+  var n = parseInt(text, 10);
+  if (isNaN(n)) {
+    n = 0;
+    for (var i = 0; i < text.length; i++) {
+      n += text.charCodeAt(i);
+    }
+  }
+  var index = (((n - 2) % PALETTE.length) + PALETTE.length) % PALETTE.length;
+  return PALETTE[index];
+}
+
+function render(source, output, text) {
+  var src = $.NSImage.alloc.initWithContentsOfFile(source);
+  var size = 1024;
+  var rep = $.NSBitmapImageRep.alloc.initWithBitmapDataPlanesPixelsWidePixelsHighBitsPerSampleSamplesPerPixelHasAlphaIsPlanarColorSpaceNameBytesPerRowBitsPerPixel(null, size, size, 8, 4, true, false, $.NSDeviceRGBColorSpace, 0, 0);
+  var ctx = $.NSGraphicsContext.graphicsContextWithBitmapImageRep(rep);
+  $.NSGraphicsContext.setCurrentContext(ctx);
+  src.drawInRectFromRectOperationFraction($.NSMakeRect(0, 0, size, size), $.NSZeroRect, $.NSCompositingOperationSourceOver, 1.0);
+  var d = size * 0.46;
+  var circle = $.NSMakeRect(size - d - size * 0.02, size * 0.02, d, d);
+  var cg = ctx.CGContext;
+  var color = badgeColor(text);
+  $.CGContextSetRGBFillColor(cg, color[0], color[1], color[2], 1);
+  $.CGContextFillEllipseInRect(cg, circle);
+  $.CGContextSetRGBStrokeColor(cg, 1, 1, 1, 1);
+  $.CGContextSetLineWidth(cg, d * 0.06);
+  $.CGContextStrokeEllipseInRect(cg, $.NSInsetRect(circle, d * 0.03, d * 0.03));
+  var label = text.substring(0, 2);
+  var fontSize = label.length === 1 ? d * 0.72 : d * 0.5;
+  var font = $.NSFont.systemFontOfSizeWeight(fontSize, $.NSFontWeightHeavy);
+  var attrs = $.NSDictionary.dictionaryWithObjectsForKeys($([font, $.NSColor.whiteColor]), $([$.NSFontAttributeName, $.NSForegroundColorAttributeName]));
+  var str = $(label);
+  var sz = str.sizeWithAttributes(attrs);
+  str.drawAtPointWithAttributes($.NSMakePoint(circle.origin.x + d / 2 - sz.width / 2, circle.origin.y + d / 2 - sz.height / 2), attrs);
+  ctx.flushGraphics;
+  var png = rep.representationUsingTypeProperties($.NSBitmapImageFileTypePNG, $({}));
+  png.writeToFileAtomically(output, true);
+}
+
+function setIcon(icns, target) {
+  var image = $.NSImage.alloc.initWithContentsOfFile(icns);
+  return $.NSWorkspace.sharedWorkspace.setIconForFileOptions(image, target, 0);
+}
+
+function run(argv) {
+  if (argv[0] === 'render') {
+    render(argv[1], argv[2], argv[3]);
+    return 'ok';
+  }
+  if (argv[0] === 'seticon') {
+    return setIcon(argv[1], argv[2]) ? 'ok' : 'failed';
+  }
+  return 'usage';
+}
+JXA
+}
+
+run_jxa() {
+  local script out rc=0
+  script="$(mktemp "${TMPDIR:-/tmp}/claude-profiles.XXXXXX")"
+  emit_jxa >"$script"
+  out="$(osascript -l JavaScript "$script" "$@" 2>&1)" || rc=$?
+  rm -f "$script"
+  [ "$rc" -eq 0 ] && [ "$out" = "ok" ] || die "icon step failed: $out"
+}
+
+icon_source() {
+  local name
+  name="$(/usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$SOURCE_APP/Contents/Info.plist")"
+  case "$name" in
+    *.icns) ;;
+    *) name="$name.icns" ;;
+  esac
+  echo "$SOURCE_APP/Contents/Resources/$name"
+}
+
+build_icon() {
+  local badge="$1" output="$2" work spec
+  work="$(mktemp -d "${TMPDIR:-/tmp}/claude-profiles.XXXXXX")"
+  mkdir -p "$work/badge.iconset"
+  run_jxa render "$(icon_source)" "$work/master.png" "$badge"
+  for spec in "16 icon_16x16" "32 icon_16x16@2x" "32 icon_32x32" "64 icon_32x32@2x" \
+    "128 icon_128x128" "256 icon_128x128@2x" "256 icon_256x256" "512 icon_256x256@2x" \
+    "512 icon_512x512" "1024 icon_512x512@2x"; do
+    set -- $spec
+    sips -z "$1" "$1" "$work/master.png" --out "$work/badge.iconset/$2.png" >/dev/null
+  done
+  iconutil -c icns "$work/badge.iconset" -o "$output"
+  rm -rf "$work"
+}
+
+copy_app() {
+  rm -rf "$2"
+  mkdir -p "$(dirname "$2")"
+  if ! cp -cR "$1" "$2" 2>/dev/null; then
+    rm -rf "$2"
+    ditto "$1" "$2"
+  fi
+}
+
+install_runtime() {
+  local self="${BASH_SOURCE[0]}" self_abs
+  mkdir -p "$ROOT/bin"
+  self_abs="$(cd "$(dirname "$self")" && pwd)/$(basename "$self")"
+  if [ "$self_abs" != "$RUNTIME" ]; then
+    cp "$self" "$RUNTIME"
+  fi
+  chmod +x "$RUNTIME"
+}
+
+rebuild_profile() {
+  local dir badge
+  dir="$(profile_dir "$1")"
+  badge="$(cat "$dir/badge")"
+  copy_app "$SOURCE_APP" "$dir/Claude.app"
+  build_icon "$badge" "$dir/icon.icns"
+  run_jxa seticon "$dir/icon.icns" "$dir/Claude.app"
+}
+
+should_rebuild() {
+  local app src cur newest
+  app="$(profile_dir "$1")/Claude.app"
+  [ -d "$app" ] || return 0
+  src="$(app_version "$SOURCE_APP")"
+  cur="$(app_version "$app")"
+  if [ -z "$src" ] || [ "$src" = "$cur" ]; then
+    return 1
+  fi
+  newest="$(printf '%s\n%s\n' "$src" "$cur" | sort -V | tail -1)"
+  [ "$newest" = "$src" ]
+}
+
+create_launcher() {
+  local name="$1" dir app bundle_id
+  dir="$(profile_dir "$name")"
+  app="$(launcher_path "$name")"
+  bundle_id="io.github.claude-profiles.$(printf '%s' "$name" | tr -c 'A-Za-z0-9.-' '-')"
+  rm -rf "$app"
+  mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
+  cp "$dir/icon.icns" "$app/Contents/Resources/icon.icns"
+  cat >"$app/Contents/MacOS/launcher" <<EOF
+#!/bin/bash
+exec "$RUNTIME" open "$name"
+EOF
+  chmod +x "$app/Contents/MacOS/launcher"
+  cat >"$app/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key><string>launcher</string>
+  <key>CFBundleIdentifier</key><string>$bundle_id</string>
+  <key>CFBundleName</key><string>Claude $name</string>
+  <key>CFBundleDisplayName</key><string>Claude $name</string>
+  <key>CFBundleIconFile</key><string>icon</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleVersion</key><string>1</string>
+  <key>LSUIElement</key><true/>
+</dict>
+</plist>
+EOF
+  codesign --force --sign - "$app" >/dev/null 2>&1 || true
+  "$LSREGISTER" -f "$app" >/dev/null 2>&1 || true
+}
+
+cmd_add() {
+  local name="" badge="" count
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --badge)
+        [ $# -ge 2 ] || die "--badge needs a value"
+        badge="$2"
+        shift 2
+        ;;
+      -*) die "unknown option: $1" ;;
+      *)
+        [ -z "$name" ] || die "unexpected argument: $1"
+        name="$1"
+        shift
+        ;;
+    esac
+  done
+  [ -n "$name" ] || die "usage: claude-profiles add <name> [--badge TEXT]"
+  valid_name "$name" || die "invalid profile name: '$name' (use letters, digits, dot, dash, underscore)"
+  profile_exists "$name" && die "profile '$name' already exists"
+  require_source
+  if [ -z "$badge" ]; then
+    count=0
+    if [ -d "$ROOT/profiles" ]; then
+      count="$(find "$ROOT/profiles" -mindepth 2 -maxdepth 2 -name badge | wc -l | tr -d ' ')"
+    fi
+    badge="$((count + 2))"
+  fi
+  mkdir -p "$(profile_dir "$name")/data" "$(profile_dir "$name")/cli"
+  printf '%s\n' "$badge" >"$(profile_dir "$name")/badge"
+  install_runtime
+  echo "Copying Claude (this can take a moment)..."
+  rebuild_profile "$name"
+  create_launcher "$name"
+  echo "Profile '$name' is ready."
+  echo "Open it from: $(launcher_path "$name")"
+  echo "or run:       claude-profiles open $name"
+}
+
+cmd_open() {
+  local dir
+  [ $# -eq 1 ] || die "usage: claude-profiles open <name>"
+  require_profile "$1"
+  require_source
+  dir="$(profile_dir "$1")"
+  if ! is_running "$dir" && should_rebuild "$1"; then
+    rebuild_profile "$1"
+  fi
+  exec /usr/bin/open -n "$dir/Claude.app" --args --user-data-dir="$dir/data"
+}
+
+update_one() {
+  local name="$1" force="$2" dir
+  dir="$(profile_dir "$name")"
+  if is_running "$dir"; then
+    echo "$name: running, close it first"
+    return 0
+  fi
+  if [ "$force" = "yes" ] || should_rebuild "$name"; then
+    rebuild_profile "$name"
+    echo "$name: updated to $(app_version "$dir/Claude.app")"
+  else
+    echo "$name: up to date ($(app_version "$dir/Claude.app"))"
+  fi
+}
+
+cmd_update() {
+  local name="" force="no" arg badge_file
+  for arg in "$@"; do
+    case "$arg" in
+      --force) force="yes" ;;
+      -*) die "unknown option: $arg" ;;
+      *) name="$arg" ;;
+    esac
+  done
+  require_source
+  install_runtime
+  if [ -n "$name" ]; then
+    require_profile "$name"
+    update_one "$name" "$force"
+    return 0
+  fi
+  [ -d "$ROOT/profiles" ] || return 0
+  for badge_file in "$ROOT"/profiles/*/badge; do
+    [ -f "$badge_file" ] || continue
+    update_one "$(basename "$(dirname "$badge_file")")" "$force"
+  done
+}
+
+cmd_list() {
+  local badge_file name dir state
+  printf '%-20s %-6s %-12s %s\n' NAME BADGE VERSION STATE
+  [ -d "$ROOT/profiles" ] || return 0
+  for badge_file in "$ROOT"/profiles/*/badge; do
+    [ -f "$badge_file" ] || continue
+    dir="$(dirname "$badge_file")"
+    name="$(basename "$dir")"
+    state="closed"
+    if is_running "$dir"; then
+      state="running"
+    fi
+    printf '%-20s %-6s %-12s %s\n' "$name" "$(cat "$badge_file")" "$(app_version "$dir/Claude.app")" "$state"
+  done
+}
+
+cmd_remove() {
+  local name="" purge="no" arg dir
+  for arg in "$@"; do
+    case "$arg" in
+      --purge) purge="yes" ;;
+      -*) die "unknown option: $arg" ;;
+      *) name="$arg" ;;
+    esac
+  done
+  [ -n "$name" ] || die "usage: claude-profiles remove <name> [--purge]"
+  valid_name "$name" || die "invalid profile name: '$name'"
+  dir="$(profile_dir "$name")"
+  [ -d "$dir" ] || die "no profile named '$name' (see: claude-profiles list)"
+  is_running "$dir" && die "profile '$name' is running, close it first"
+  rm -rf "$(launcher_path "$name")"
+  if [ "$purge" = "yes" ]; then
+    rm -rf "$dir"
+    echo "Profile '$name' removed, including its login and data."
+  else
+    rm -rf "$dir/Claude.app" "$dir/icon.icns" "$dir/badge"
+    echo "Profile '$name' removed. Its login and data are kept in $dir (use --purge to delete them)."
+  fi
+}
+
+cmd_cli() {
+  [ $# -ge 1 ] || die "usage: claude-profiles cli <name> [args...]"
+  local name="$1"
+  shift
+  require_profile "$name"
+  command -v claude >/dev/null 2>&1 || die "the 'claude' command was not found in PATH"
+  CLAUDE_CONFIG_DIR="$(profile_dir "$name")/cli" exec claude "$@"
+}
+
+main() {
+  require_macos
+  local command="${1:-help}"
+  [ $# -gt 0 ] && shift
+  case "$command" in
+    add) cmd_add "$@" ;;
+    open) cmd_open "$@" ;;
+    update) cmd_update "$@" ;;
+    list | ls) cmd_list ;;
+    remove | rm) cmd_remove "$@" ;;
+    cli) cmd_cli "$@" ;;
+    version | --version | -v) echo "claude-profiles $VERSION" ;;
+    help | --help | -h) usage ;;
+    *) usage >&2; exit 1 ;;
+  esac
+}
+
+main "$@"
