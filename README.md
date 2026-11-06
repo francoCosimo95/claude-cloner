@@ -165,7 +165,7 @@ What to know before you run it:
 The number on the badge decides the color.
 
 <p align="center">
-  <img src="docs/badges.svg" alt="Badge colors for profiles 2 to 9: blue, green, purple, pink, teal, red, amber, slate" width="100%">
+  <img src="docs/badge-colors.svg" alt="Badge colors for profiles 2 to 9: blue, green, purple, pink, teal, red, amber, slate" width="100%">
 </p>
 
 After 9 the cycle starts over, so 10 is blue again.
