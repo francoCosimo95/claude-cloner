@@ -168,6 +168,9 @@ Opening one from its launcher checks your installed Claude first and rebuilds wh
 **Why does the Dock still say "Claude"?**
 The Dock label comes from the app's own metadata, and editing that breaks the app. The badge on the icon is how you tell instances apart.
 
+**I signed in and got the same account as my regular Claude. Why?**
+When you sign in, Claude opens your browser, and your browser is already signed in to claude.ai with your main account, so it approves that one. Open the sign-in link in a private window, or switch account on the browser page, and use the account you want for this profile. Claude Code inside the app is kept separate by the profile itself.
+
 **Where do my logins live?**
 In `~/.claude-profiles/profiles/<number>/data`, on your Mac. Nothing leaves your machine.
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="0.2.0"
+VERSION="0.2.1"
 ROOT="${CLAUDE_PROFILES_HOME:-$HOME/.claude-profiles}"
 APPS_DIR="${CLAUDE_PROFILES_APPS:-$HOME/Applications}"
 SOURCE_APP="${CLAUDE_PROFILES_SOURCE:-/Applications/Claude.app}"
@@ -305,7 +305,7 @@ cmd_open() {
   if ! is_running "$dir" && should_rebuild "$1"; then
     rebuild_profile "$1"
   fi
-  exec /usr/bin/open -n "$dir/Claude.app" --args --user-data-dir="$dir/data"
+  exec /usr/bin/open -n "$dir/Claude.app" --env CLAUDE_CONFIG_DIR="$dir/cli" --args --user-data-dir="$dir/data"
 }
 
 update_one() {

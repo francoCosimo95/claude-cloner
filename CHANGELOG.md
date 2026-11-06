@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-06
+
+### Fixed
+
+- Profiles now start Claude with its own `CLAUDE_CONFIG_DIR`, so Claude Code inside the app no longer shares the login of your regular Claude.
+
 ## [0.2.0] - 2026-11-06
 
 ### Changed
