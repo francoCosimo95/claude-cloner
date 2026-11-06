@@ -4,7 +4,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLI="$HERE/cloner"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/cloner-test.XXXXXX")"
-trap 'rm -rf "$WORK"' EXIT
+trap 'chflags -R nouchg "$WORK" 2>/dev/null; rm -rf "$WORK"' EXIT
 
 export CLAUDE_CLONER_HOME="$WORK/home"
 export CLAUDE_CLONER_APPS="$WORK/apps"
@@ -191,6 +191,7 @@ kill "$SLEEPER" 2>/dev/null || true
 wait "$SLEEPER" 2>/dev/null || true
 pass "correctly started profile is not flagged"
 
+chflags nouchg "$CLAUDE_CLONER_HOME/profiles/7/Claude.app"
 rm -f "$CLAUDE_CLONER_HOME/profiles/7/Claude.app/"$'Icon\r'
 "$CLI" update 7 >/dev/null
 [ -e "$CLAUDE_CLONER_HOME/profiles/7/Claude.app/"$'Icon\r' ] || fail "badge icon was not restored"
@@ -209,5 +210,11 @@ case "$OUT" in *"carry context"*) ;; *) fail "copy should warn about memory" ;; 
 OUT="$("$CLI" copy 1 4 --only skills --link)"
 case "$OUT" in *"linked to the source"*) ;; *) fail "copy --link should explain links" ;; esac
 pass "copy prints its notes"
+
+APP2="$CLAUDE_CLONER_HOME/profiles/2/Claude.app"
+ls -ldO "$APP2" | grep -q uchg || fail "the app copy should be locked"
+mv "$APP2" "$APP2.moved" 2>/dev/null && fail "a locked app copy must not be movable"
+ls -ldO "$CLAUDE_CLONER_HOME/profiles/7/Claude.app" | grep -q uchg || fail "restoring the icon should lock the copy again"
+pass "app copy is locked against being replaced"
 
 echo "$PASSED checks passed"

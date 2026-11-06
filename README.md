@@ -201,6 +201,8 @@ For each profile, `cloner`:
 3. **Badges** the copy with a custom icon, set through Finder metadata (the same thing "Get Info" does when you paste an icon).
 4. **Launches** through a tiny app that calls the script. Every start compares your installed Claude with the copy, and rebuilds the copy first when yours is newer.
 
+5. **Locks** the copy with the immutable flag, so Claude's own updater cannot replace it. Without the lock, an update restarted the copy without its data folder and without its badge, and signed you in as your main account. Profiles update through the launcher instead, see below.
+
 Your original Claude is never touched, and neither is the inside of the copy, so its code signature stays valid. That is on purpose: in testing, copies with an edited app bundle (name, icon file, bundle id) crashed at startup, while an untouched copy ran fine.
 
 ```
@@ -220,7 +222,7 @@ Your original Claude is never touched, and neither is the inside of the copy, so
 | What you see | Why | What to do |
 | --- | --- | --- |
 | The profile is signed in as your main account | Your browser approved the account it was already signed in with | Sign out of the profile, then sign in again from a private browser window |
-| Same thing, and `cloner list` says `running on wrong data` | The profile was started without its data folder, for example from the Dock icon, or after Claude restarted the copy by itself | Quit it and open it again from its launcher (`Claude 2`, or `cloner open 2`) |
+| Same thing, and `cloner list` says `running on wrong data` | The profile was started without its data folder, for example from the Dock icon, or by Claude's own updater in a copy made before 0.4.3 (newer copies are locked against that) | Quit it and open it again from its launcher (`Claude 2`, or `cloner open 2`) |
 | The badge disappeared from the icon | Claude replaced the app copy, and the badge lives in the copy's metadata | Run `cloner update 2`, or `cloner open 2`. Both put it back. Restart the Dock with `killall Dock` if it still shows the old icon |
 | `cloner copy` says the profile is running | It never writes into an open profile | Quit the profile and run it again |
 | The Code tab does not show the copied skills | The profile was open while copying, or was not reopened | Quit the profile, run `cloner copy 1 2` again, then open it |
@@ -235,7 +237,7 @@ What it relies on:
 
 - **How Claude's app is built today** (Electron, `--user-data-dir` and `CLAUDE_CONFIG_DIR`). A future version of the app could change that.
 - **APFS clones** for speed and disk space. On other volumes it falls back to a plain copy.
-- **Claude updating its own copy.** It can happen, and it is handled by the checks above, but it is not something this tool controls.
+- **Claude updating its own copy.** Profile copies are locked so the updater cannot replace them. If the updater ever finds another way, `cloner list` flags the profile and `cloner update` restores the badge. A locked copy cannot be deleted from Finder: use `cloner remove`.
 
 Intel Macs are unverified. Nothing in it is specific to Apple Silicon, and reports are welcome.
 
@@ -248,7 +250,7 @@ Yes. The script only reads `/Applications/Claude.app` and your Claude Code confi
 It looks like one, but on APFS (the default on every recent Mac) the copy is a clone that shares disk blocks with the original. When Claude updates and a profile is rebuilt, it becomes a clone of the new version.
 
 **Do profiles update themselves?**
-Opening one from its launcher checks your installed Claude first and rebuilds when yours is newer. A profile that is already running is left alone until you close it. You can also run `cloner update` any time. Claude can also update a copy by itself: see the troubleshooting table if it restarts on the wrong data or loses its badge.
+Opening one from its launcher checks your installed Claude first and rebuilds when yours is newer. A profile that is already running is left alone until you close it. You can also run `cloner update` any time. Claude's own updater cannot replace a profile copy: `cloner` locks the copy, because an update used to restart it on your main account's data and wipe its badge. If your installed Claude is newer, the profile is rebuilt the next time you open it from its launcher. Copies made before 0.4.3 are locked the first time you open or update them.
 
 **Why does the Dock still say "Claude"?**
 The Dock label comes from the app's own metadata, and editing that breaks the app. The badge on the icon is how you tell instances apart.
@@ -268,6 +270,7 @@ cloner remove 2
 That deletes the launcher, the app copy and the login and data of profile 2. Add `--keep-data` to keep the login, so adding 2 again brings it right back. To remove everything:
 
 ```bash
+chflags -R nouchg ~/.claude-cloner
 rm -rf ~/.claude-cloner ~/Applications/Claude\ [0-9]*.app
 ```
 

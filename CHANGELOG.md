@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-06
+
+### Fixed
+
+- Claude's own updater replaced the profile copy and restarted it without its data folder and badge, which signed you in as your main account. The copy is now locked with the immutable flag so the updater cannot replace it. `open` and `update` lock copies made earlier, and `remove` and rebuilds unlock them first.
+
 ### Changed
 
 - The README image shows two Claude chat windows with the app icon and badges, and the demo video link was removed from the README.
