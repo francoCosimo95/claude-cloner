@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The badge colors image shows the Claude icon with each numbered badge.
+- The demo video lives in `docs/claude-cloner-demo.mp4`, attached to the project and not to a release.
+
 ## [0.4.3] - 2026-11-06
 
 ### Fixed
