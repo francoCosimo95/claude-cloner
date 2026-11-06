@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-06
+
+### Fixed
+
+- Pinning the running copy in the Dock started it on your regular Claude data and signed you in as your main account. `add` and the README now say to pin the launcher instead, and why.
+
 ## [1.0.0] - 2026-11-06
 
 First stable release. The commands and options described in the README will not change in a breaking way within 1.x.

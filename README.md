@@ -85,7 +85,7 @@ Each number has its own color, so you know which window is which at a glance.
 
 ## Good to know
 
-- **Open profiles from their launcher.** That is `Claude 2` in Spotlight, or `cloner open 2`. Starting one from the Dock icon of a running copy makes it use your regular Claude's data.
+- **Open profiles from their launcher, and pin that.** That is `Claude 2` in Spotlight, or `cloner open 2`. To keep one in the Dock, drag `Claude 2` from `~/Applications` into the Dock. Do not use "Keep in Dock" on the running icon: it pins the copy itself, which starts on your regular Claude's data. While a profile runs you will see two identical icons, the pinned launcher and the running app.
 - **Claude cannot update a profile by itself.** The copy is locked, because an update once restarted it on the wrong account. `cloner open` rebuilds it when your installed Claude is newer. A locked copy cannot be deleted from Finder, so use `cloner remove`.
 - **If a profile shows `running on wrong data`** in `cloner list`, quit it and open it again from its launcher. If its badge goes missing, `cloner update 2` puts it back.
 - **Your original Claude is never touched.** Everything lives in `~/.claude-cloner`.
