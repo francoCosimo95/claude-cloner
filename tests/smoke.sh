@@ -196,4 +196,18 @@ rm -f "$CLAUDE_CLONER_HOME/profiles/7/Claude.app/"$'Icon\r'
 [ -e "$CLAUDE_CLONER_HOME/profiles/7/Claude.app/"$'Icon\r' ] || fail "badge icon was not restored"
 pass "update restores a lost badge icon"
 
+OUT="$("$CLI" add 9)"
+case "$OUT" in *"Next steps"*) ;; *) fail "add should print the next steps" ;; esac
+"$CLI" add 9 >/dev/null 2>&1 && fail "adding an existing number should fail"
+"$CLI" remove 9 >/dev/null
+pass "add prints the next steps"
+
+OUT="$("$CLI" copy 1 3 --only skills)"
+case "$OUT" in *"Close and reopen profile 3"*) ;; *) fail "copy should remind to reopen the profile" ;; esac
+OUT="$("$CLI" copy 1 3 --only memory)"
+case "$OUT" in *"carry context"*) ;; *) fail "copy should warn about memory" ;; esac
+OUT="$("$CLI" copy 1 4 --only skills --link)"
+case "$OUT" in *"linked to the source"*) ;; *) fail "copy --link should explain links" ;; esac
+pass "copy prints its notes"
+
 echo "$PASSED checks passed"

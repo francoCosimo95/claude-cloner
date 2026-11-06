@@ -1,47 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" aria-labelledby="t d">
-  <title id="t">Two Claude windows side by side, profiles 2 and 3</title>
-  <desc id="d">Two app windows with a blue badge numbered 2 and a green badge numbered 3, above a terminal command that creates a profile.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" width="1200" height="600" role="img" aria-labelledby="t d">
+  <title id="t">claude-cloner</title>
+  <desc id="d">Two app icons with badges 2 and 3, the name claude-cloner and the commands cloner add and cloner copy 1 2.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#eef1f6"/>
-      <stop offset="1" stop-color="#dfe4ec"/>
-    </linearGradient>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6f8fb"/><stop offset="1" stop-color="#e3e8f0"/></linearGradient>
+    <radialGradient id="g1"><stop offset="0" stop-color="#1F73F2" stop-opacity="0.28"/><stop offset="1" stop-color="#1F73F2" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g2"><stop offset="0" stop-color="#8C4FD9" stop-opacity="0.28"/><stop offset="1" stop-color="#8C4FD9" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g3"><stop offset="0" stop-color="#219E4F" stop-opacity="0.28"/><stop offset="1" stop-color="#219E4F" stop-opacity="0"/></radialGradient>
+    <linearGradient id="ic" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a5878"/><stop offset="1" stop-color="#232c42"/></linearGradient>
+    <g id="app">
+      <rect width="190" height="190" rx="44" fill="url(#ic)"/>
+      <rect x="40" y="52" width="110" height="86" rx="14" fill="none" stroke="#ffffff" stroke-opacity="0.92" stroke-width="8"/>
+      <rect x="40" y="52" width="110" height="24" rx="12" fill="#ffffff" fill-opacity="0.92"/>
+    </g>
   </defs>
-  <rect width="960" height="360" rx="24" fill="url(#bg)"/>
-
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-    <g>
-      <rect x="64" y="40" width="388" height="220" rx="14" fill="#ffffff" stroke="#d3d9e3"/>
-      <circle cx="88" cy="62" r="6" fill="#ff5f57"/>
-      <circle cx="108" cy="62" r="6" fill="#febc2e"/>
-      <circle cx="128" cy="62" r="6" fill="#28c840"/>
-      <text x="258" y="67" text-anchor="middle" font-size="14" fill="#5b6472">Claude 2</text>
-      <rect x="92" y="100" width="240" height="12" rx="6" fill="#e4e8ef"/>
-      <rect x="92" y="126" width="300" height="12" rx="6" fill="#e4e8ef"/>
-      <rect x="92" y="152" width="180" height="12" rx="6" fill="#e4e8ef"/>
-      <rect x="92" y="196" width="332" height="36" rx="10" fill="#f3f5f9" stroke="#d3d9e3"/>
-      <text x="108" y="219" font-size="13" fill="#7a8494">ada@company.com</text>
-      <circle cx="404" cy="244" r="38" fill="#1F73F2" stroke="#ffffff" stroke-width="5"/>
-      <text x="404" y="259" text-anchor="middle" font-size="42" font-weight="800" fill="#ffffff">2</text>
-    </g>
-
-    <g>
-      <rect x="508" y="40" width="388" height="220" rx="14" fill="#ffffff" stroke="#d3d9e3"/>
-      <circle cx="532" cy="62" r="6" fill="#ff5f57"/>
-      <circle cx="552" cy="62" r="6" fill="#febc2e"/>
-      <circle cx="572" cy="62" r="6" fill="#28c840"/>
-      <text x="702" y="67" text-anchor="middle" font-size="14" fill="#5b6472">Claude 3</text>
-      <rect x="536" y="100" width="280" height="12" rx="6" fill="#e4e8ef"/>
-      <rect x="536" y="126" width="220" height="12" rx="6" fill="#e4e8ef"/>
-      <rect x="536" y="152" width="260" height="12" rx="6" fill="#e4e8ef"/>
-      <rect x="536" y="196" width="332" height="36" rx="10" fill="#f3f5f9" stroke="#d3d9e3"/>
-      <text x="552" y="219" font-size="13" fill="#7a8494">ada@gmail.com</text>
-      <circle cx="848" cy="244" r="38" fill="#219E4F" stroke="#ffffff" stroke-width="5"/>
-      <text x="848" y="259" text-anchor="middle" font-size="42" font-weight="800" fill="#ffffff">3</text>
-    </g>
-
-    <rect x="64" y="296" width="832" height="44" rx="12" fill="#0a0c10" stroke="#252a33"/>
-    <text x="88" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#8b93a1">$</text>
-    <text x="108" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#e6e9ef">cloner add &amp;&amp; cloner add</text>
+  <rect width="1200" height="600" rx="24" fill="url(#bg)"/>
+  <circle cx="230" cy="130" r="420" fill="url(#g1)"/>
+  <circle cx="980" cy="470" r="440" fill="url(#g2)"/>
+  <circle cx="600" cy="600" r="380" fill="url(#g3)"/>
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" text-anchor="middle">
+    <use href="#app" x="400" y="90"/>
+    <use href="#app" x="610" y="90"/>
+    <circle cx="560" cy="250" r="40" fill="#1F73F2" stroke="#ffffff" stroke-width="6"/>
+    <text x="560" y="266" font-size="46" font-weight="800" fill="#ffffff">2</text>
+    <circle cx="770" cy="250" r="40" fill="#219E4F" stroke="#ffffff" stroke-width="6"/>
+    <text x="770" y="266" font-size="46" font-weight="800" fill="#ffffff">3</text>
+    <text x="600" y="400" font-size="92" font-weight="800" fill="#14171d">claude-cloner</text>
+    <text x="600" y="452" font-size="30" fill="#5b6472">Two Claudes. Two accounts. One Mac.</text>
+    <rect x="290" y="492" width="620" height="68" rx="18" fill="#0a0c10" stroke="#252a33"/>
+    <text x="600" y="536" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="28" fill="#e6e9ef">$ cloner add &amp;&amp; cloner copy 1 2</text>
   </g>
 </svg>

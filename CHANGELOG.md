@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-06
+
+### Added
+
+- `add` prints the next steps, including the browser sign-in and Dock warnings. `copy` reminds you to reopen the profile and warns about memory and links. `help` lists the same warnings.
+- README with the add then copy process, a troubleshooting table, an explanation of the two kinds of memory, and a link to the demo video.
+
 ## [0.4.1] - 2026-11-06
 
 ### Fixed

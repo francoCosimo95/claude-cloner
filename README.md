@@ -16,14 +16,22 @@ An open source side project by [Cosimo Franco](https://github.com/francoCosimo95
 [![Dependencies: none](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](#faq)
 ![Written in bash](https://img.shields.io/badge/written%20in-bash-4EAA25.svg)
 
-[Quick start](#quick-start) · [Commands](#commands) · [How it works](#how-it-works) · [FAQ](#faq) · [Roadmap](#roadmap) · [Contributing](CONTRIBUTING.md)
+[The process](#the-process-add-then-copy) · [Quick start](#quick-start) · [Commands](#commands) · [Troubleshooting](#troubleshooting) · [How it works](#how-it-works) · [FAQ](#faq) · [Contributing](CONTRIBUTING.md)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.svg">
-  <img alt="Two Claude windows side by side, profiles 2 and 3" src="docs/hero-light.svg" width="900">
+  <img alt="claude-cloner: two app icons with badges 2 and 3, and the commands cloner add and cloner copy 1 2" src="docs/hero-light.svg" width="900">
 </picture>
 
 </div>
+
+## Watch the 28 second demo
+
+<p align="center">
+  <a href="https://github.com/francoCosimo95/claude-cloner/releases/download/v0.4.2/claude-cloner-demo.mp4">
+    <img src="docs/video-poster.svg" alt="Watch the claude-cloner demo video" width="720">
+  </a>
+</p>
 
 ## Why
 
@@ -31,16 +39,45 @@ Claude for Mac keeps one login. If you have a work account and a personal one, y
 
 I built this for myself, because I live exactly that double life. Now each account gets its own app, its own number and its own color. If you do too, it is yours.
 
+## The process: add, then copy
+
+Two steps, and the second is optional.
+
+<p align="center">
+  <img src="docs/flow.svg" alt="Step 1: cloner add. Step 2: open and sign in. Step 3, optional: cloner copy 1 2" width="100%">
+</p>
+
+1. **`cloner add`** makes a new Claude with its own login and its own data. It takes the next free number, starting at 2. Your regular Claude is number 1.
+2. **Open it and sign in** with the account you want for this profile.
+3. **`cloner copy 1 2`** (optional) brings your skills, agents, commands and `CLAUDE.md` from your regular Claude into profile 2. Memory, settings and the rest are opt-in.
+
+```bash
+cloner add
+cloner copy 1 2
+```
+
+> [!IMPORTANT]
+> Close the profile before running `cloner copy`. It refuses to write into a running profile, and Claude would overwrite the files it is using.
+
 ## Quick start
 
 ```bash
 git clone https://github.com/francoCosimo95/claude-cloner.git
 cd claude-cloner
 ./cloner add
-./cloner add
 ```
 
-That is it: you now have **Claude 2** and **Claude 3** next to your regular Claude. Open them from Spotlight or Launchpad, sign in once, done. The login sticks.
+`add` prints what to do next. In short:
+
+1. Open **Claude 2** from Spotlight or Launchpad.
+2. Sign in with the account you want for this profile. The login sticks.
+3. Optional: close it and run `./cloner copy 1 2`.
+
+> [!WARNING]
+> Signing in opens your browser, and your browser may already be signed in to claude.ai with your main account. It will approve that one, and the profile ends up on the wrong account. Open the sign-in link in a private window, or use "switch account" on the browser page.
+
+> [!WARNING]
+> Always open a profile from its launcher (`Claude 2`), or with `cloner open 2`. Do not start it from the Dock icon of a running copy: that starts it without its own data and it would use your regular Claude.
 
 To use the command from anywhere:
 
@@ -64,9 +101,10 @@ cp cloner ~/.local/bin/
 - **A separate login for every profile.** Each one has its own data folder, so accounts never mix.
 - **A real app for each one.** `Claude 2.app` shows up in Spotlight and Launchpad like anything else.
 - **A colored badge on the icon.** Blue 2, green 3, purple 4... you know which window is which before you even look.
-- **Always up to date.** Opening a profile checks your installed Claude first and rebuilds its copy if yours is newer.
+- **Your setup, carried over.** `cloner copy` brings skills, agents, memory and settings along.
 - **Practically free on disk.** Copies are APFS clones, so a new profile starts out using almost no extra space.
-- **Claude Code included.** `cloner cli 2` gives your terminal a separate login per profile too.
+- **Claude Code included.** The Code tab and `cloner cli 2` use the profile's own configuration and login.
+- **Safety nets.** Backups before anything is overwritten, and a warning when a profile runs on the wrong data.
 
 ## Commands
 
@@ -76,13 +114,13 @@ Profiles are numbered. Your regular Claude is the first one, so profiles start a
 | --- | --- |
 | `cloner add [number]` | Create a profile: the next free number, or the one you give |
 | `cloner open <number>` | Open a profile, updating it first if needed |
-| `cloner list` | See your profiles, their versions and what is running |
-| `cloner update [number] [--force]` | Refresh profile copies from your installed Claude |
+| `cloner list` | See your profiles, their versions and whether they are running |
+| `cloner update [number] [--force]` | Refresh profile copies from your installed Claude, and restore a lost badge icon |
 | `cloner remove <number> [--keep-data]` | Delete a profile, including its login and data |
-| `cloner cli <number> [args...]` | Run the Claude Code CLI with the profile's own login |
 | `cloner copy <from> <to> [--only items] [--link] [--dry-run]` | Copy skills, agents, memory and more between Claude instances |
+| `cloner cli <number> [args...]` | Run the Claude Code CLI with the profile's own login |
 
-`add` always takes the lowest free number. Have 2 and 4, delete 4, add again, and you get 4 back. Have 2 and 4, and `add` gives you 3.
+`add` always takes the lowest free number. Have 2 and 4, and `add` gives you 3. Delete 4 and add again, and you get 4 back.
 
 ```
 $ cloner list
@@ -92,6 +130,43 @@ PROFILE   VERSION      STATE
 $ cloner add
 Profile 3 is ready.
 ```
+
+## Copy: bring your setup along
+
+A new profile starts empty. `cloner copy <from> <to>` fills it with what you choose. `1` is your regular Claude, any other number is a profile.
+
+```bash
+cloner copy 1 2
+cloner copy 1 2 --only skills,memory,settings
+cloner copy 1 2 --dry-run
+cloner copy 2 3 --only skills --link
+```
+
+Without `--only`, it copies the safe set: `skills`, `agents`, `commands` and `instructions`.
+
+| Item | What it is | In the default set |
+| --- | --- | --- |
+| `skills`, `agents`, `commands` | The matching folders of your Claude Code configuration | Yes |
+| `instructions` | Your `CLAUDE.md` | Yes |
+| `hooks` | The `hooks` folder | No |
+| `settings` | `settings.json`: permissions, hooks, environment | No |
+| `memory` | Claude Code's per-project memory files | No |
+| `mcp` | The desktop app's `claude_desktop_config.json` (can contain API keys) | No |
+
+What to know before you run it:
+
+- **Run it again to sync.** New and changed files overwrite the ones with the same name in the profile. It merges: a file you deleted from the source stays in the profile.
+- **Backups.** Whatever gets replaced is saved in `.cloner-backup` inside the profile's configuration folder, with the time of the copy.
+- **`--dry-run` writes nothing.** It only shows what would be copied. It works even if the profile is open.
+- **`--link` keeps folders in sync.** Instead of copying, the profile points at the source folder. Changes show up on both sides, and removing the profile never deletes the source.
+- **Never copied.** Login files (`.claude.json`, credentials), organization files (`policy-limits`, `remote-settings`), history and caches.
+- **The profile must be closed.** Reopen it afterwards to load the changes.
+
+> [!NOTE]
+> **Memory comes in two kinds.** `cloner copy --only memory` copies Claude Code's memory, the files under `projects/*/memory` that the Code tab uses. The memory of the Claude chat is different: it belongs to the account on Anthropic's servers, so no tool on your Mac can copy it. Each account keeps its own.
+
+> [!CAUTION]
+> If one profile is for work and another is not, copying skills, instructions or memory carries that context across. Copy only what you want the other account to see.
 
 ## Every profile gets its own color
 
@@ -109,41 +184,7 @@ After 9 the cycle starts over, so 10 is blue again.
 cloner cli 2
 ```
 
-It starts the `claude` command with `CLAUDE_CONFIG_DIR` pointing inside the profile, so your terminal login stays separate too. Arguments pass straight through: `cloner cli 2 --help`.
-
-## Bring your setup along
-
-A new profile starts empty. If you want your skills, agents or memory there too, copy them. Your regular Claude is number 1.
-
-```bash
-cloner copy 1 2
-```
-
-That copies skills, agents, commands and your `CLAUDE.md`. Everything else is opt-in:
-
-```bash
-cloner copy 1 2 --only skills,memory,settings
-cloner copy 1 2 --dry-run
-cloner copy 2 3 --only skills --link
-```
-
-| Item | What it is |
-| --- | --- |
-| `skills`, `agents`, `commands`, `hooks` | The matching folders of your Claude Code configuration |
-| `instructions` | Your `CLAUDE.md` |
-| `settings` | `settings.json`: permissions, hooks, environment |
-| `memory` | Claude Code's per-project memory |
-| `mcp` | The desktop app's `claude_desktop_config.json` (can contain API keys) |
-
-Good to know:
-
-- **Nothing is overwritten without a copy.** Replaced files are saved in `.cloner-backup` inside the profile's configuration folder.
-- **`--dry-run` writes nothing.** It only shows what would be copied.
-- **`--link` keeps folders in sync.** Instead of copying, the profile points at the source folder.
-- **Login and organization files are never copied.** That means `.claude.json`, credentials, `policy-limits` and `remote-settings`.
-- **Server-side data stays on the account.** Chats, Projects, claude.ai memory and connectors belong to the account, not to the Mac, so they cannot be copied.
-- **Close the profile first.** `copy` refuses to write into a running profile.
-- **Mind the separation.** If one profile is for work and another is not, copying carries that context across.
+It starts the `claude` command with `CLAUDE_CONFIG_DIR` pointing inside the profile, so your terminal login stays separate too. Arguments pass straight through: `cloner cli 2 --help`. The desktop app gets the same variable when it is opened from the launcher, which is why its Code tab has its own configuration.
 
 ## How it works
 
@@ -152,17 +193,19 @@ Claude is an Electron app, and Electron keeps its state in a "user data" folder 
 ```mermaid
 flowchart LR
     L["Launcher: Claude 2.app"] --> R["cloner open 2"]
-    R --> C{"Installed Claude newer?"}
+    R --> W{"Running without its data folder?"}
+    W -- yes --> S["Refuse, ask to quit and reopen"]
+    W -- no --> C{"Installed Claude newer?"}
     C -- yes --> B["Rebuild the profile copy and its badge icon"]
     C -- no --> O
-    B --> O["open -n --user-data-dir=profile/data"]
+    B --> O["open -n with the profile's data and config folders"]
     O --> A["Claude, signed in as profile 2"]
 ```
 
 For each profile, `cloner`:
 
 1. **Copies** `Claude.app` into `~/.claude-cloner/profiles/<number>/` as an APFS clone.
-2. **Opens** that copy with `open -n --user-data-dir=<profile>/data`, so it gets its own login and settings.
+2. **Opens** that copy with `open -n --user-data-dir=<profile>/data` and `CLAUDE_CONFIG_DIR=<profile>/cli`, so it gets its own login, settings and Claude Code configuration.
 3. **Badges** the copy with a custom icon, set through Finder metadata (the same thing "Get Info" does when you paste an icon).
 4. **Launches** through a tiny app that calls the script. Every start compares your installed Claude with the copy, and rebuilds the copy first when yours is newer.
 
@@ -171,45 +214,52 @@ Your original Claude is never touched, and neither is the inside of the copy, so
 ```
 /Applications/Claude.app                  your Claude, never modified
 ~/.claude-cloner/
-  bin/cloner                     runtime used by the launchers
+  bin/cloner                              runtime used by the launchers
   profiles/2/
     Claude.app                            APFS clone of your Claude
     data/                                 this profile's login and settings
-    cli/                                  this profile's Claude Code config
+    cli/                                  this profile's Claude Code configuration
     icon.icns                             the badged icon
 ~/Applications/Claude 2.app               launcher
 ```
 
+## Troubleshooting
+
+| What you see | Why | What to do |
+| --- | --- | --- |
+| The profile is signed in as your main account | Your browser approved the account it was already signed in with | Sign out of the profile, then sign in again from a private browser window |
+| Same thing, and `cloner list` says `running on wrong data` | The profile was started without its data folder, for example from the Dock icon, or after Claude restarted the copy by itself | Quit it and open it again from its launcher (`Claude 2`, or `cloner open 2`) |
+| The badge disappeared from the icon | Claude replaced the app copy, and the badge lives in the copy's metadata | Run `cloner update 2`, or `cloner open 2`. Both put it back. Restart the Dock with `killall Dock` if it still shows the old icon |
+| `cloner copy` says the profile is running | It never writes into an open profile | Quit the profile and run it again |
+| The Code tab does not show the copied skills | The profile was open while copying, or was not reopened | Quit the profile, run `cloner copy 1 2` again, then open it |
+| Nothing from the Claude chat memory shows up | Chat memory belongs to the account, not to the Mac | Nothing can copy it, each account keeps its own |
+| `cloner open` says the profile runs without its data folder | Same as above | Quit it first, then open it again |
+
 ## Status
 
-Early and small, but it works. What it relies on:
+Early and small, but it works. It was tested end to end on macOS 26 with an Apple Silicon Mac and Claude desktop 4.4212.0 and 4.23118.0: `add`, signing in, `copy` and seeing the copied skills in the Code tab. The automated tests run with `./tests/smoke.sh`.
 
-- **How Claude's app is built today** (Electron and `--user-data-dir`). A future version of the app could change that.
+What it relies on:
+
+- **How Claude's app is built today** (Electron, `--user-data-dir` and `CLAUDE_CONFIG_DIR`). A future version of the app could change that.
 - **APFS clones** for speed and disk space. On other volumes it falls back to a plain copy.
+- **Claude updating its own copy.** It can happen, and it is handled by the checks above, but it is not something this tool controls.
 
-Tested on an Apple Silicon Mac. Nothing in it is specific to Apple Silicon, but Intel is unverified, and reports are welcome.
+Intel Macs are unverified. Nothing in it is specific to Apple Silicon, and reports are welcome.
 
 ## FAQ
 
 **Is my existing Claude safe?**
-Yes. The script only reads `/Applications/Claude.app` to make copies. Your original app and its data stay exactly as they are.
+Yes. The script only reads `/Applications/Claude.app` and your Claude Code configuration to make copies. Your original app and its data stay exactly as they are.
 
 **Is every profile a full copy of the app?**
 It looks like one, but on APFS (the default on every recent Mac) the copy is a clone that shares disk blocks with the original. When Claude updates and a profile is rebuilt, it becomes a clone of the new version.
 
 **Do profiles update themselves?**
-Opening one from its launcher checks your installed Claude first and rebuilds when yours is newer. A profile that is already running is left alone until you close it. You can also run `cloner update` any time.
-
-Claude can also update a copy by itself. When that happens the copy may restart without its data folder and without its badge icon. `cloner list` then shows `running on wrong data`, and `cloner open` refuses to start a second one. Quit the profile and open it again from its launcher: it gets its own data back, and the badge icon is put back too.
-
-**I opened a profile and I am signed in as my main account. Why?**
-The profile is probably running on the data of your regular Claude, see the question above. If it is not, remember that signing in opens your browser, and the browser may approve the account it is already signed in with. Use a private window or switch account on the browser page.
+Opening one from its launcher checks your installed Claude first and rebuilds when yours is newer. A profile that is already running is left alone until you close it. You can also run `cloner update` any time. Claude can also update a copy by itself: see the troubleshooting table if it restarts on the wrong data or loses its badge.
 
 **Why does the Dock still say "Claude"?**
 The Dock label comes from the app's own metadata, and editing that breaks the app. The badge on the icon is how you tell instances apart.
-
-**I signed in and got the same account as my regular Claude. Why?**
-When you sign in, Claude opens your browser, and your browser is already signed in to claude.ai with your main account, so it approves that one. Open the sign-in link in a private window, or switch account on the browser page, and use the account you want for this profile. Claude Code inside the app is kept separate by the profile itself.
 
 **Where do my logins live?**
 In `~/.claude-cloner/profiles/<number>/data`, on your Mac. Nothing leaves your machine.
@@ -233,11 +283,11 @@ rm -rf ~/.claude-cloner ~/Applications/Claude\ [0-9]*.app
 
 Ideas, in no particular order. Want one? Open an issue and say so, so nobody does the same work twice.
 
+- [ ] `cloner copy --mirror`, to also delete what no longer exists in the source
 - [ ] Homebrew tap, for `brew install`
 - [ ] `cloner doctor`, to check what is wrong with a profile
 - [ ] Shell completions
 - [ ] Verified Intel support
-- [ ] Tests that run in CI
 
 ## Contributing
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="0.4.1"
+VERSION="0.4.2"
 ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
 APPS_DIR="${CLAUDE_CLONER_APPS:-$HOME/Applications}"
 SOURCE_APP="${CLAUDE_CLONER_SOURCE:-/Applications/Claude.app}"
@@ -31,6 +31,11 @@ Usage:
   cloner cli <number> [args...]         run the Claude Code CLI with the profile's own login
   cloner copy <from> <to> [options]    copy skills, agents, memory and more between Claude instances (1 is your regular Claude)
   cloner version
+
+Good to know:
+  - Open profiles from their launcher, not from the Dock icon of a running copy.
+  - Signing in opens your browser, which may approve the account it is already signed in with.
+  - copy needs the destination profile closed, and keeps a backup of what it replaces.
 
 Launcher apps are created in $APPS_DIR.
 Profile data lives in $ROOT.
@@ -320,8 +325,13 @@ cmd_add() {
   rebuild_profile "$number"
   create_launcher "$number"
   echo "Profile $number is ready."
-  echo "Open it from: $(launcher_path "$number")"
-  echo "or run:       cloner open $number"
+  echo
+  echo "Next steps:"
+  echo "  1. Open it from Claude $number in Spotlight or Launchpad, or run: cloner open $number"
+  echo "     Do not start it from the Dock icon of a running copy: it would use your regular Claude data."
+  echo "  2. Sign in with the account you want for this profile."
+  echo "     Your browser may approve the account it is already signed in with: use a private window or switch account."
+  echo "  3. Optional, with the profile closed: cloner copy 1 $number"
 }
 
 cmd_open() {
@@ -589,6 +599,19 @@ cmd_copy() {
         ;;
     esac
   done
+  if [ "$DRY_RUN" != "yes" ]; then
+    echo "Close and reopen profile $to to load the changes."
+    for item in "${items[@]}"; do
+      case "$item" in
+        memory) echo "Note: memory can carry context from one account into the other." ;;
+        skills | agents | commands | hooks)
+          if [ "$LINK" = "yes" ]; then
+            echo "Note: $item are linked to the source. Changes show up in both, and removing a profile never deletes the source."
+          fi
+          ;;
+      esac
+    done
+  fi
   if [ -n "$BACKUP_DIR" ]; then
     echo "Replaced files were saved in $BACKUP_DIR"
   fi
