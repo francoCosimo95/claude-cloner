@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-06
+
+### Fixed
+
+- `open`, `update` and `remove` detect an app copy owned by another user, which happens when Claude's updater is authorized as administrator, and print the one command that fixes it.
+
 ## [1.2.1] - 2026-11-06
 
 ### Fixed

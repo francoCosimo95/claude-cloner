@@ -87,7 +87,7 @@ Each number has its own color, so you know which window is which at a glance.
 ## Good to know
 
 - **Open profiles from their launcher.** `cloner add` pins it in your Dock for you (`--no-dock` skips that, `cloner dock 2` pins it later), and it is also `Claude 2` in Spotlight, or `cloner open 2`. Do not use "Keep in Dock" on the running icon: it pins the copy itself, which starts on your regular Claude's data. While a profile runs you will see two identical icons, the pinned launcher and the running app.
-- **Claude can update a profile's copy when you quit it.** It may then restart on your regular Claude's data instead of the profile's. If a profile shows `running on wrong data` in `cloner list`, quit it and open it again from its launcher. If its badge goes missing, `cloner update 2` puts it back. `cloner open` also rebuilds the copy when your installed Claude is newer.
+- **Claude can update a profile's copy when you quit it.** It may then restart on your regular Claude's data instead of the profile's. If a profile shows `running on wrong data` in `cloner list`, quit it and open it again from its launcher. If its badge goes missing, `cloner update 2` puts it back. `cloner open` also rebuilds the copy when your installed Claude is newer. If Claude ever asks for your password to add a "helper tool", cancel it: authorizing it makes the update run as administrator and leaves the copy owned by root, and `cloner` then tells you the one `sudo chown` command that fixes it.
 - **Your original Claude is never touched.** Everything lives in `~/.claude-cloner`.
 - **The Dock label stays "Claude".** The badge on the icon is how you tell them apart.
 
