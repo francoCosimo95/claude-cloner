@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
 if [ -n "${CLAUDE_CLONER_APPS:-}" ]; then
   APPS_DIR="$CLAUDE_CLONER_APPS"
@@ -261,10 +261,6 @@ install_runtime() {
   chmod +x "$RUNTIME"
 }
 
-lock_app() {
-  chflags uchg "$1" 2>/dev/null || true
-}
-
 unlock_app() {
   if [ -e "$1" ]; then
     chflags nouchg "$1" 2>/dev/null || true
@@ -278,7 +274,6 @@ rebuild_profile() {
   copy_app "$SOURCE_APP" "$dir/Claude.app"
   build_icon "$1" "$dir/icon.icns"
   run_jxa seticon "$dir/icon.icns" "$dir/Claude.app"
-  lock_app "$dir/Claude.app"
 }
 
 ensure_icon() {
@@ -287,19 +282,12 @@ ensure_icon() {
   app="$dir/Claude.app"
   [ -d "$app" ] && [ -f "$dir/icon.icns" ] || return 0
   if [ ! -e "$app/"$'Icon\r' ]; then
-    unlock_app "$app"
     run_jxa seticon "$dir/icon.icns" "$app"
-    lock_app "$app"
   fi
 }
 
-ensure_lock() {
-  local app
-  app="$(profile_dir "$1")/Claude.app"
-  [ -d "$app" ] || return 0
-  if ! ls -ldO "$app" | grep -q uchg; then
-    lock_app "$app"
-  fi
+ensure_unlocked() {
+  unlock_app "$(profile_dir "$1")/Claude.app"
 }
 
 should_rebuild() {
@@ -473,8 +461,8 @@ cmd_open() {
   if is_misplaced "$dir"; then
     die "profile $1 is running without its own data folder (it probably restarted itself after an update). Quit it, then open it again."
   fi
+  ensure_unlocked "$1"
   ensure_icon "$1"
-  ensure_lock "$1"
   if ! is_running "$dir" && should_rebuild "$1"; then
     rebuild_profile "$1"
   fi
@@ -485,8 +473,8 @@ update_one() {
   local number="$1" force="$2" dir
   dir="$(profile_dir "$number")"
   migrate_launcher "$number"
+  ensure_unlocked "$number"
   ensure_icon "$number"
-  ensure_lock "$number"
   if is_running "$dir"; then
     echo "$number: running, close it first"
     return 0

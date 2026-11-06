@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-06
+
+### Fixed
+
+- Removed the lock on the profile copy. It made Claude's updater fail and ask for an administrator password every time a profile was quit, and it did not stop the app from restarting on the wrong data. `open` and `update` clear the lock on copies made by earlier versions.
+
 ## [1.2.0] - 2026-11-06
 
 ### Added

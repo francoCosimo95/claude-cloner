@@ -216,10 +216,11 @@ case "$OUT" in *"linked to the source"*) ;; *) fail "copy --link should explain 
 pass "copy prints its notes"
 
 APP2="$CLAUDE_CLONER_HOME/profiles/2/Claude.app"
-ls -ldO "$APP2" | grep -q uchg || fail "the app copy should be locked"
-mv "$APP2" "$APP2.moved" 2>/dev/null && fail "a locked app copy must not be movable"
-ls -ldO "$CLAUDE_CLONER_HOME/profiles/7/Claude.app" | grep -q uchg || fail "restoring the icon should lock the copy again"
-pass "app copy is locked against being replaced"
+ls -ldO "$APP2" | grep -q uchg && fail "the app copy must not be locked"
+chflags uchg "$APP2"
+"$CLI" update 2 >/dev/null
+ls -ldO "$APP2" | grep -q uchg && fail "update should clear a lock left by an older version"
+pass "app copy is not locked, and an old lock is cleared"
 
 mv "$CLAUDE_CLONER_APPS/Claude 7.app" "$CLAUDE_CLONER_LEGACY_APPS/Claude 7.app"
 "$CLI" update 7 >/dev/null
