@@ -1,10 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="0.3.0"
+VERSION="0.4.0"
 ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
 APPS_DIR="${CLAUDE_CLONER_APPS:-$HOME/Applications}"
 SOURCE_APP="${CLAUDE_CLONER_SOURCE:-/Applications/Claude.app}"
+MAIN_CONFIG="${CLAUDE_CLONER_MAIN_CONFIG:-$HOME/.claude}"
+MAIN_SUPPORT="${CLAUDE_CLONER_MAIN_SUPPORT:-$HOME/Library/Application Support/Claude}"
 RUNTIME="$ROOT/bin/cloner"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
@@ -27,6 +29,7 @@ Usage:
   cloner update [number] [--force]      refresh profile copies from the installed Claude
   cloner remove <number> [--keep-data]  delete a profile, including its login and data
   cloner cli <number> [args...]         run the Claude Code CLI with the profile's own login
+  cloner copy <from> <to> [options]    copy skills, agents, memory and more between Claude instances (1 is your regular Claude)
   cloner version
 
 Launcher apps are created in $APPS_DIR.
@@ -390,6 +393,175 @@ cmd_cli() {
   CLAUDE_CONFIG_DIR="$(profile_dir "$number")/cli" exec claude "$@"
 }
 
+config_dir() {
+  if [ "$1" = "1" ]; then
+    echo "$MAIN_CONFIG"
+  else
+    echo "$(profile_dir "$1")/cli"
+  fi
+}
+
+desktop_config_file() {
+  if [ "$1" = "1" ]; then
+    echo "$MAIN_SUPPORT/claude_desktop_config.json"
+  else
+    echo "$(profile_dir "$1")/data/claude_desktop_config.json"
+  fi
+}
+
+require_copy_source() {
+  if [ "$1" = "1" ]; then
+    return 0
+  fi
+  require_profile "$1"
+}
+
+BACKUP_DIR=""
+TARGET=""
+DRY_RUN="no"
+LINK="no"
+
+backup_existing() {
+  local path="$1" label="$2"
+  [ -e "$path" ] || [ -L "$path" ] || return 0
+  if [ -z "$BACKUP_DIR" ]; then
+    BACKUP_DIR="$(config_dir "$TARGET")/.cloner-backup/$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$BACKUP_DIR"
+  fi
+  cp -cRP "$path" "$BACKUP_DIR/$label" 2>/dev/null || cp -RP "$path" "$BACKUP_DIR/$label"
+}
+
+count_files() {
+  if [ -d "$1" ]; then
+    find "$1" -type f | wc -l | tr -d ' '
+  else
+    echo 1
+  fi
+}
+
+transfer() {
+  local label="$1" src="$2" dst="$3"
+  if [ ! -e "$src" ]; then
+    echo "  $label: nothing to copy"
+    return 0
+  fi
+  if [ "$DRY_RUN" = "yes" ]; then
+    echo "  $label: would copy $(count_files "$src") file(s)"
+    return 0
+  fi
+  backup_existing "$dst" "$label"
+  mkdir -p "$(dirname "$dst")"
+  if [ -d "$src" ] && [ "$LINK" = "yes" ]; then
+    rm -rf "$dst"
+    ln -s "$src" "$dst"
+    echo "  $label: linked"
+  elif [ -d "$src" ]; then
+    mkdir -p "$dst"
+    ditto "$src" "$dst"
+    echo "  $label: copied $(count_files "$src") file(s)"
+  else
+    cp "$src" "$dst"
+    echo "  $label: copied"
+  fi
+}
+
+transfer_memory() {
+  local src_cfg="$1" dst_cfg="$2" dir slug count=0
+  for dir in "$src_cfg"/projects/*/memory; do
+    [ -d "$dir" ] || continue
+    slug="$(basename "$(dirname "$dir")")"
+    count=$((count + 1))
+    if [ "$DRY_RUN" != "yes" ]; then
+      backup_existing "$dst_cfg/projects/$slug/memory" "memory-$slug"
+      mkdir -p "$dst_cfg/projects/$slug/memory"
+      ditto "$dir" "$dst_cfg/projects/$slug/memory"
+    fi
+  done
+  if [ "$DRY_RUN" = "yes" ]; then
+    echo "  memory: would copy $count project(s)"
+  else
+    echo "  memory: copied $count project(s)"
+  fi
+}
+
+cmd_copy() {
+  local from="" to="" only="skills,agents,commands,instructions" item src_cfg dst_cfg
+  local items
+  DRY_RUN="no"
+  LINK="no"
+  BACKUP_DIR=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --only)
+        [ $# -ge 2 ] || die "--only needs a value"
+        only="$2"
+        shift 2
+        ;;
+      --link)
+        LINK="yes"
+        shift
+        ;;
+      --dry-run)
+        DRY_RUN="yes"
+        shift
+        ;;
+      -*) die "unknown option: $1" ;;
+      *)
+        if [ -z "$from" ]; then
+          from="$1"
+        elif [ -z "$to" ]; then
+          to="$1"
+        else
+          die "unexpected argument: $1"
+        fi
+        shift
+        ;;
+    esac
+  done
+  [ -n "$from" ] && [ -n "$to" ] || die "usage: cloner copy <from> <to> [--only items] [--link] [--dry-run]"
+  [ "$from" != "$to" ] || die "source and destination are the same"
+  require_copy_source "$from"
+  valid_number "$to" || die "the destination must be a profile number (2 or higher)"
+  require_profile "$to"
+  if [ "$DRY_RUN" != "yes" ] && is_running "$(profile_dir "$to")"; then
+    die "profile $to is running, close it first"
+  fi
+  IFS=',' read -r -a items <<<"$only"
+  for item in "${items[@]}"; do
+    case "$item" in
+      skills | agents | commands | hooks | instructions | settings | memory | mcp) ;;
+      *) die "unknown item '$item' (choose from: skills, agents, commands, hooks, instructions, settings, memory, mcp)" ;;
+    esac
+  done
+  TARGET="$to"
+  src_cfg="$(config_dir "$from")"
+  dst_cfg="$(config_dir "$to")"
+  mkdir -p "$dst_cfg"
+  if [ "$DRY_RUN" = "yes" ]; then
+    echo "Dry run, nothing is written. From $from to $to:"
+  else
+    echo "Copying from $from to $to:"
+  fi
+  for item in "${items[@]}"; do
+    case "$item" in
+      skills) transfer skills "$src_cfg/skills" "$dst_cfg/skills" ;;
+      agents) transfer agents "$src_cfg/agents" "$dst_cfg/agents" ;;
+      commands) transfer commands "$src_cfg/commands" "$dst_cfg/commands" ;;
+      hooks) transfer hooks "$src_cfg/hooks" "$dst_cfg/hooks" ;;
+      instructions) transfer instructions "$src_cfg/CLAUDE.md" "$dst_cfg/CLAUDE.md" ;;
+      settings) transfer settings "$src_cfg/settings.json" "$dst_cfg/settings.json" ;;
+      memory) transfer_memory "$src_cfg" "$dst_cfg" ;;
+      mcp)
+        echo "  mcp: this file can contain API keys, it is copied as is"
+        transfer mcp "$(desktop_config_file "$from")" "$(desktop_config_file "$to")"
+        ;;
+    esac
+  done
+  if [ -n "$BACKUP_DIR" ]; then
+    echo "Replaced files were saved in $BACKUP_DIR"
+  fi
+}
+
 main() {
   require_macos
   local command="${1:-help}"
@@ -401,6 +573,7 @@ main() {
     list | ls) cmd_list ;;
     remove | rm) cmd_remove "$@" ;;
     cli) cmd_cli "$@" ;;
+    copy) cmd_copy "$@" ;;
     version | --version | -v) echo "cloner $VERSION" ;;
     help | --help | -h) usage ;;
     *) usage >&2; exit 1 ;;

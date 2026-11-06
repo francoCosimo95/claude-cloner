@@ -112,4 +112,62 @@ touch "$CLAUDE_CLONER_HOME/profiles/4/data/login-marker"
 [ -f "$CLAUDE_CLONER_HOME/profiles/4/data/login-marker" ] || fail "kept data should come back"
 pass "--keep-data keeps the login for when the number comes back"
 
+MAIN="$WORK/main-config"
+SUPPORT="$WORK/main-support"
+export CLAUDE_CLONER_MAIN_CONFIG="$MAIN"
+export CLAUDE_CLONER_MAIN_SUPPORT="$SUPPORT"
+mkdir -p "$MAIN/skills/demo" "$MAIN/agents" "$MAIN/commands" "$MAIN/projects/app/memory" "$SUPPORT"
+echo skill >"$MAIN/skills/demo/SKILL.md"
+echo agent >"$MAIN/agents/a.md"
+echo command >"$MAIN/commands/c.md"
+echo rules >"$MAIN/CLAUDE.md"
+echo '{"hooks":{}}' >"$MAIN/settings.json"
+echo memory >"$MAIN/projects/app/memory/m.md"
+echo login >"$MAIN/.claude.json"
+echo org >"$MAIN/policy-limits.json"
+echo '{"mcpServers":{}}' >"$SUPPORT/claude_desktop_config.json"
+P3="$CLAUDE_CLONER_HOME/profiles/3"
+
+"$CLI" copy 1 3 --dry-run >/dev/null
+[ ! -e "$P3/cli/skills" ] || fail "dry run wrote files"
+pass "copy --dry-run writes nothing"
+
+"$CLI" copy 1 3 >/dev/null
+[ -f "$P3/cli/skills/demo/SKILL.md" ] || fail "skills not copied"
+[ -f "$P3/cli/agents/a.md" ] || fail "agents not copied"
+[ -f "$P3/cli/commands/c.md" ] || fail "commands not copied"
+[ -f "$P3/cli/CLAUDE.md" ] || fail "instructions not copied"
+[ ! -e "$P3/cli/settings.json" ] || fail "settings must not be copied by default"
+[ ! -e "$P3/cli/projects" ] || fail "memory must not be copied by default"
+[ ! -e "$P3/cli/.claude.json" ] || fail "login file must never be copied"
+[ ! -e "$P3/cli/policy-limits.json" ] || fail "organization file must never be copied"
+pass "copy defaults to the safe set and never copies login or organization files"
+
+"$CLI" copy 1 3 --only settings,memory,mcp >/dev/null
+[ -f "$P3/cli/settings.json" ] || fail "settings not copied"
+[ -f "$P3/cli/projects/app/memory/m.md" ] || fail "memory not copied"
+[ -f "$P3/data/claude_desktop_config.json" ] || fail "mcp config not copied"
+pass "copy --only settings,memory,mcp"
+
+echo changed >"$MAIN/CLAUDE.md"
+"$CLI" copy 1 3 --only instructions >/dev/null
+grep -q changed "$P3/cli/CLAUDE.md" || fail "instructions not updated"
+ls "$P3"/cli/.cloner-backup/*/instructions >/dev/null 2>&1 || fail "overwritten file was not backed up"
+pass "copy backs up what it overwrites"
+
+"$CLI" copy 1 4 --only skills --link >/dev/null
+[ -L "$CLAUDE_CLONER_HOME/profiles/4/cli/skills" ] || fail "link not created"
+[ -f "$CLAUDE_CLONER_HOME/profiles/4/cli/skills/demo/SKILL.md" ] || fail "link does not resolve"
+pass "copy --link links directories"
+
+"$CLI" copy 3 7 --only skills >/dev/null
+[ -f "$CLAUDE_CLONER_HOME/profiles/7/cli/skills/demo/SKILL.md" ] || fail "profile to profile copy"
+pass "copy works between profiles"
+
+"$CLI" copy 1 3 --only nothing >/dev/null 2>&1 && fail "unknown item should fail"
+"$CLI" copy 3 1 >/dev/null 2>&1 && fail "copy into the regular Claude should fail"
+"$CLI" copy 3 3 >/dev/null 2>&1 && fail "same source and destination should fail"
+"$CLI" copy 1 99 >/dev/null 2>&1 && fail "missing destination should fail"
+pass "copy rejects bad input"
+
 echo "$PASSED checks passed"

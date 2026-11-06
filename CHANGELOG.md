@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-06
+
+### Added
+
+- `cloner copy <from> <to>` copies skills, agents, commands, hooks, instructions, settings, memory and the desktop MCP config between Claude instances. 1 is the regular Claude. It backs up what it replaces, never copies login or organization files, and supports `--only`, `--link` and `--dry-run`.
+
 ## [0.3.0] - 2026-11-06
 
 ### Changed

@@ -80,6 +80,7 @@ Profiles are numbered. Your regular Claude is the first one, so profiles start a
 | `cloner update [number] [--force]` | Refresh profile copies from your installed Claude |
 | `cloner remove <number> [--keep-data]` | Delete a profile, including its login and data |
 | `cloner cli <number> [args...]` | Run the Claude Code CLI with the profile's own login |
+| `cloner copy <from> <to> [--only items] [--link] [--dry-run]` | Copy skills, agents, memory and more between Claude instances |
 
 `add` always takes the lowest free number. Have 2 and 4, delete 4, add again, and you get 4 back. Have 2 and 4, and `add` gives you 3.
 
@@ -109,6 +110,40 @@ cloner cli 2
 ```
 
 It starts the `claude` command with `CLAUDE_CONFIG_DIR` pointing inside the profile, so your terminal login stays separate too. Arguments pass straight through: `cloner cli 2 --help`.
+
+## Bring your setup along
+
+A new profile starts empty. If you want your skills, agents or memory there too, copy them. Your regular Claude is number 1.
+
+```bash
+cloner copy 1 2
+```
+
+That copies skills, agents, commands and your `CLAUDE.md`. Everything else is opt-in:
+
+```bash
+cloner copy 1 2 --only skills,memory,settings
+cloner copy 1 2 --dry-run
+cloner copy 2 3 --only skills --link
+```
+
+| Item | What it is |
+| --- | --- |
+| `skills`, `agents`, `commands`, `hooks` | The matching folders of your Claude Code configuration |
+| `instructions` | Your `CLAUDE.md` |
+| `settings` | `settings.json`: permissions, hooks, environment |
+| `memory` | Claude Code's per-project memory |
+| `mcp` | The desktop app's `claude_desktop_config.json` (can contain API keys) |
+
+Good to know:
+
+- **Nothing is overwritten without a copy.** Replaced files are saved in `.cloner-backup` inside the profile's configuration folder.
+- **`--dry-run` writes nothing.** It only shows what would be copied.
+- **`--link` keeps folders in sync.** Instead of copying, the profile points at the source folder.
+- **Login and organization files are never copied.** That means `.claude.json`, credentials, `policy-limits` and `remote-settings`.
+- **Server-side data stays on the account.** Chats, Projects, claude.ai memory and connectors belong to the account, not to the Mac, so they cannot be copied.
+- **Close the profile first.** `copy` refuses to write into a running profile.
+- **Mind the separation.** If one profile is for work and another is not, copying carries that context across.
 
 ## How it works
 
