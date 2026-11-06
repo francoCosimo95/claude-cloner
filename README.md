@@ -31,7 +31,7 @@ cd claude-cloner
 ./cloner add
 ```
 
-Then open **Claude 2** from Spotlight, Launchpad or your Applications folder, right next to Claude, and sign in with the account you want. The login sticks.
+Then open **Claude 2**, which is pinned in your Dock (you also find it in Spotlight, Launchpad and your Applications folder, right next to Claude), and sign in with the account you want. The login sticks.
 
 If you also want your skills, instructions and memory in the new app, close it and run:
 
@@ -47,10 +47,11 @@ If you also want your skills, instructions and memory in the new app, close it a
 
 | Command | What it does |
 | --- | --- |
-| `cloner add [number]` | Make a new Claude. Takes the next free number from 2, or the one you give. |
+| `cloner add [number]` | Make a new Claude and pin it in your Dock. Takes the next free number from 2, or the one you give. |
 | `cloner open <number>` | Open it, updating it first if your installed Claude is newer. |
 | `cloner list` | Show your profiles and whether they are running. |
 | `cloner copy <from> <to>` | Copy skills, instructions and more from one Claude to another. |
+| `cloner dock <number>` | Pin a profile's launcher in the Dock. `add` does it for you. |
 | `cloner update [number]` | Refresh a profile from your installed Claude. |
 | `cloner remove <number>` | Delete a profile, with its login and data. |
 | `cloner cli <number>` | Run the `claude` command in the terminal with that profile's login. |
@@ -85,7 +86,7 @@ Each number has its own color, so you know which window is which at a glance.
 
 ## Good to know
 
-- **Open profiles from their launcher, and pin that.** That is `Claude 2` in Spotlight, or `cloner open 2`. To keep one in the Dock, drag `Claude 2` from your Applications folder into the Dock. Do not use "Keep in Dock" on the running icon: it pins the copy itself, which starts on your regular Claude's data. While a profile runs you will see two identical icons, the pinned launcher and the running app.
+- **Open profiles from their launcher.** `cloner add` pins it in your Dock for you (`--no-dock` skips that, `cloner dock 2` pins it later), and it is also `Claude 2` in Spotlight, or `cloner open 2`. Do not use "Keep in Dock" on the running icon: it pins the copy itself, which starts on your regular Claude's data. While a profile runs you will see two identical icons, the pinned launcher and the running app.
 - **Claude cannot update a profile by itself.** The copy is locked, because an update once restarted it on the wrong account. `cloner open` rebuilds it when your installed Claude is newer. A locked copy cannot be deleted from Finder, so use `cloner remove`.
 - **If a profile shows `running on wrong data`** in `cloner list`, quit it and open it again from its launcher. If its badge goes missing, `cloner update 2` puts it back.
 - **Your original Claude is never touched.** Everything lives in `~/.claude-cloner`.

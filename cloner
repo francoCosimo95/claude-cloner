@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
 if [ -n "${CLAUDE_CLONER_APPS:-}" ]; then
   APPS_DIR="$CLAUDE_CLONER_APPS"
@@ -22,6 +22,7 @@ SOURCE_APP="${CLAUDE_CLONER_SOURCE:-/Applications/Claude.app}"
 MAIN_CONFIG="${CLAUDE_CLONER_MAIN_CONFIG:-$HOME/.claude}"
 MAIN_SUPPORT="${CLAUDE_CLONER_MAIN_SUPPORT:-$HOME/Library/Application Support/Claude}"
 RUNTIME="$ROOT/bin/cloner"
+DOCK_DOMAIN="${CLAUDE_CLONER_DOCK_DOMAIN:-com.apple.dock}"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
 die() {
@@ -37,13 +38,14 @@ Run several Claude desktop instances side by side, each with its own login.
 Profiles are numbered from 2 (your regular Claude is the first one).
 
 Usage:
-  cloner add [number]                   create a profile: the next free number, or the one you give
+  cloner add [number] [--no-dock]       create a profile: the next free number, or the one you give, and pin it in the Dock
   cloner open <number>                  open a profile (updates it first if needed)
   cloner list                           show profiles, versions and state
   cloner update [number] [--force]      refresh profile copies from the installed Claude
   cloner remove <number> [--keep-data]  delete a profile, including its login and data
   cloner cli <number> [args...]         run the Claude Code CLI with the profile's own login
   cloner copy <from> <to> [options]    copy skills, agents, memory and more between Claude instances (1 is your regular Claude)
+  cloner dock <number>                  pin a profile's launcher in the Dock
   cloner version
 
 Good to know:
@@ -356,11 +358,78 @@ migrate_launcher() {
   fi
 }
 
+dock_url() {
+  printf 'file://%s/' "$(printf '%s' "$1" | sed 's/ /%20/g')"
+}
+
+dock_is_pinned() {
+  local out
+  out="$(defaults read "$DOCK_DOMAIN" persistent-apps 2>/dev/null || true)"
+  case "$out" in
+    *"$(dock_url "$1")"*) return 0 ;;
+  esac
+  return 1
+}
+
+restart_dock() {
+  if [ "$DOCK_DOMAIN" = "com.apple.dock" ]; then
+    killall Dock 2>/dev/null || true
+  fi
+}
+
+pin_to_dock() {
+  local url
+  url="$(dock_url "$1")"
+  if dock_is_pinned "$1"; then
+    return 0
+  fi
+  defaults write "$DOCK_DOMAIN" persistent-apps -array-add "<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>$url</string><key>_CFURLStringType</key><integer>15</integer></dict></dict><key>tile-type</key><string>file-tile</string></dict>"
+  restart_dock
+}
+
+unpin_from_dock() {
+  local url tmp i=0 found=""
+  dock_is_pinned "$1" || return 0
+  url="$(dock_url "$1")"
+  tmp="$(mktemp "${TMPDIR:-/tmp}/claude-cloner-dock.XXXXXX")"
+  defaults export "$DOCK_DOMAIN" "$tmp"
+  while /usr/libexec/PlistBuddy -c "Print :persistent-apps:$i:tile-type" "$tmp" >/dev/null 2>&1; do
+    if [ "$(/usr/libexec/PlistBuddy -c "Print :persistent-apps:$i:tile-data:file-data:_CFURLString" "$tmp" 2>/dev/null || true)" = "$url" ]; then
+      /usr/libexec/PlistBuddy -c "Delete :persistent-apps:$i" "$tmp"
+      found="yes"
+      break
+    fi
+    i=$((i + 1))
+  done
+  if [ -n "$found" ]; then
+    defaults import "$DOCK_DOMAIN" "$tmp"
+    restart_dock
+  fi
+  rm -f "$tmp"
+}
+
+cmd_dock() {
+  [ $# -eq 1 ] || die "usage: cloner dock <number>"
+  require_profile "$1"
+  migrate_launcher "$1"
+  [ -d "$(launcher_path "$1")" ] || die "no launcher for profile $1"
+  pin_to_dock "$(launcher_path "$1")"
+  echo "Claude $1 is pinned in your Dock."
+}
+
 cmd_add() {
-  local number=""
-  [ $# -le 1 ] || die "usage: cloner add [number]"
-  if [ $# -eq 1 ]; then
-    number="$1"
+  local number="" dock="yes" pinned="no" arg
+  for arg in "$@"; do
+    case "$arg" in
+      --no-dock) dock="no" ;;
+      -*) die "unknown option: $arg" ;;
+      *)
+        [ -z "$number" ] || die "usage: cloner add [number] [--no-dock]"
+        number="$arg"
+        ;;
+    esac
+  done
+  if [ -n "$number" ]; then
     valid_number "$number" || die "invalid profile number: '$number' (profiles start at 2)"
     profile_exists "$number" && die "profile $number already exists"
   fi
@@ -374,12 +443,21 @@ cmd_add() {
   echo "Copying Claude (this can take a moment)..."
   rebuild_profile "$number"
   create_launcher "$number"
+  if [ "$dock" = "yes" ] && [ "${CLAUDE_CLONER_DOCK:-on}" != "off" ]; then
+    pin_to_dock "$(launcher_path "$number")"
+    pinned="yes"
+  fi
   echo "Profile $number is ready."
   echo
   echo "Next steps:"
-  echo "  1. Open it from Claude $number in Spotlight, Launchpad or $APPS_DIR, or run: cloner open $number"
-  echo "     To keep it in the Dock, drag Claude $number from $APPS_DIR into the Dock."
-  echo "     Do not use \"Keep in Dock\" on the running icon: that pins the copy itself, which starts on your regular Claude data."
+  if [ "$pinned" = "yes" ]; then
+    echo "  1. Open it from the Dock, where it is pinned for you, or from Claude $number in Spotlight or Launchpad."
+    echo "     Do not use \"Keep in Dock\" on the running icon: that pins the copy itself, which starts on your regular Claude data."
+  else
+    echo "  1. Open it from Claude $number in Spotlight, Launchpad or $APPS_DIR, or run: cloner open $number"
+    echo "     To keep it in the Dock, run: cloner dock $number"
+    echo "     Do not use \"Keep in Dock\" on the running icon: that pins the copy itself, which starts on your regular Claude data."
+  fi
   echo "  2. Sign in with the account you want for this profile."
   echo "     Your browser may approve the account it is already signed in with: use a private window or switch account."
   echo "  3. Optional, with the profile closed: cloner copy 1 $number"
@@ -472,6 +550,7 @@ cmd_remove() {
   [ -d "$dir" ] || die "no profile $number (see: cloner list)"
   is_running "$dir" && die "profile $number is running, close it first"
   unlock_app "$dir/Claude.app"
+  unpin_from_dock "$(launcher_path "$number")"
   rm -rf "$(launcher_path "$number")"
   if [ -n "$LEGACY_APPS" ]; then
     rm -rf "$LEGACY_APPS/Claude $number.app"
@@ -688,6 +767,7 @@ main() {
     remove | rm) cmd_remove "$@" ;;
     cli) cmd_cli "$@" ;;
     copy) cmd_copy "$@" ;;
+    dock) cmd_dock "$@" ;;
     version | --version | -v) echo "cloner $VERSION" ;;
     help | --help | -h) usage ;;
     *) usage >&2; exit 1 ;;

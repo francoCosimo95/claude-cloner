@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-06
+
+### Added
+
+- `cloner add` pins the new launcher in the Dock, so nobody pins the running copy by mistake. `--no-dock` skips it, `cloner dock <number>` pins an existing one, and `remove` unpins it.
+
 ## [1.1.0] - 2026-11-06
 
 ### Changed

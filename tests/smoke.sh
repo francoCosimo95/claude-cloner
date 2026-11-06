@@ -4,12 +4,14 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLI="$HERE/cloner"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/cloner-test.XXXXXX")"
-trap 'chflags -R nouchg "$WORK" 2>/dev/null; rm -rf "$WORK"' EXIT
+trap 'chflags -R nouchg "$WORK" 2>/dev/null; rm -rf "$WORK"; defaults delete "$CLAUDE_CLONER_DOCK_DOMAIN" 2>/dev/null || true; rm -f "$HOME/Library/Preferences/$CLAUDE_CLONER_DOCK_DOMAIN.plist"' EXIT
 
 export CLAUDE_CLONER_HOME="$WORK/home"
 export CLAUDE_CLONER_APPS="$WORK/apps"
 export CLAUDE_CLONER_SOURCE="$WORK/source/Claude.app"
 export CLAUDE_CLONER_LEGACY_APPS="$WORK/legacy"
+export CLAUDE_CLONER_DOCK="off"
+export CLAUDE_CLONER_DOCK_DOMAIN="io.github.claude-cloner.test.$$"
 mkdir -p "$CLAUDE_CLONER_LEGACY_APPS"
 mkdir -p "$CLAUDE_CLONER_APPS"
 
@@ -224,5 +226,21 @@ mv "$CLAUDE_CLONER_APPS/Claude 7.app" "$CLAUDE_CLONER_LEGACY_APPS/Claude 7.app"
 [ -d "$CLAUDE_CLONER_APPS/Claude 7.app" ] || fail "an old launcher should move to the current folder"
 [ ! -e "$CLAUDE_CLONER_LEGACY_APPS/Claude 7.app" ] || fail "the old launcher should be removed after moving"
 pass "update moves an old launcher next to the others"
+
+"$CLI" add --bogus >/dev/null 2>&1 && fail "add should reject unknown options"
+pass "add rejects unknown options"
+
+"$CLI" dock 7 >/dev/null
+DOCK_OUT="$(defaults read "$CLAUDE_CLONER_DOCK_DOMAIN" persistent-apps 2>/dev/null || true)"
+case "$DOCK_OUT" in *"Claude%207.app"*) ;; *) fail "dock should pin the launcher" ;; esac
+"$CLI" dock 7 >/dev/null
+DOCK_OUT="$(defaults read "$CLAUDE_CLONER_DOCK_DOMAIN" persistent-apps 2>/dev/null || true)"
+[ "$(printf '%s\n' "$DOCK_OUT" | grep -c 'Claude%207.app')" = "1" ] || fail "pinning twice should not duplicate the entry"
+pass "dock pins a launcher once"
+
+"$CLI" remove 7 >/dev/null
+DOCK_OUT="$(defaults read "$CLAUDE_CLONER_DOCK_DOMAIN" persistent-apps 2>/dev/null || true)"
+case "$DOCK_OUT" in *"Claude%207.app"*) fail "remove should unpin the launcher" ;; esac
+pass "remove unpins the launcher"
 
 echo "$PASSED checks passed"
