@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="0.4.3"
+VERSION="1.0.0"
 ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
 APPS_DIR="${CLAUDE_CLONER_APPS:-$HOME/Applications}"
 SOURCE_APP="${CLAUDE_CLONER_SOURCE:-/Applications/Claude.app}"

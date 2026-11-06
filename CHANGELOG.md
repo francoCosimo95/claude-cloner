@@ -2,8 +2,13 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-06
+
+First stable release. The commands and options described in the README will not change in a breaking way within 1.x.
+
 ### Changed
 
+- The README images share one style, with dark and light versions.
 - The README is shorter and plainer: fewer sections and warnings, no diagram.
 - The badge colors image shows the Claude icon with each numbered badge.
 - The demo video lives in `docs/claude-cloner-demo.mp4`, attached to the project and not to a release.

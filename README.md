@@ -77,7 +77,10 @@ The other items are `hooks`, `memory` (Claude Code's per-project memory), `setti
 Each number has its own color, so you know which window is which at a glance.
 
 <p align="center">
-  <img src="docs/badge-colors.svg" alt="Claude app icons badged 2 to 9: blue, green, purple, pink, teal, red, amber, slate" width="100%">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/badge-colors-dark.svg">
+    <img alt="Claude app icons badged 2 to 9: blue, green, purple, pink, teal, red, amber, slate" src="docs/badge-colors-light.svg" width="900">
+  </picture>
 </p>
 
 ## Good to know
@@ -96,7 +99,7 @@ The copy is never edited inside, so its signature stays valid. In testing, copie
 
 ## Status
 
-Small and early, but it works. Tested on macOS 26 on an Apple Silicon Mac with Claude desktop 4.4212.0 and 4.23118.0. Intel is unverified. It depends on how Claude's app is built today, and a future version could change that. The tests run with `./tests/smoke.sh`.
+Stable since 1.0: the commands and options described here will not change in a breaking way within 1.x. Tested on macOS 26 on an Apple Silicon Mac with Claude desktop 4.4212.0 and 4.23118.0. Intel is unverified. It depends on how Claude's app is built today, and a future version could change that. The tests run with `./tests/smoke.sh`.
 
 To remove everything: `chflags -R nouchg ~/.claude-cloner && rm -rf ~/.claude-cloner ~/Applications/Claude\ [0-9]*.app`
 
