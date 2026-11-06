@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" aria-labelledby="t d">
+  <title id="t">Two Claude windows side by side, one for work and one for personal</title>
+  <desc id="d">Two app windows with a blue badge numbered 2 and a green badge numbered 3, above a terminal command that creates a profile.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14171d"/>
+      <stop offset="1" stop-color="#0c0e12"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="360" rx="24" fill="url(#bg)"/>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <g>
+      <rect x="64" y="40" width="388" height="220" rx="14" fill="#1b1f27" stroke="#2c323d"/>
+      <circle cx="88" cy="62" r="6" fill="#ff5f57"/>
+      <circle cx="108" cy="62" r="6" fill="#febc2e"/>
+      <circle cx="128" cy="62" r="6" fill="#28c840"/>
+      <text x="258" y="67" text-anchor="middle" font-size="14" fill="#8b93a1">Claude work</text>
+      <rect x="92" y="100" width="240" height="12" rx="6" fill="#2a303b"/>
+      <rect x="92" y="126" width="300" height="12" rx="6" fill="#2a303b"/>
+      <rect x="92" y="152" width="180" height="12" rx="6" fill="#2a303b"/>
+      <rect x="92" y="196" width="332" height="36" rx="10" fill="#232832" stroke="#2f3643"/>
+      <text x="108" y="219" font-size="13" fill="#6f7886">ada@company.com</text>
+      <circle cx="404" cy="244" r="38" fill="#1F73F2" stroke="#ffffff" stroke-width="5"/>
+      <text x="404" y="259" text-anchor="middle" font-size="42" font-weight="800" fill="#ffffff">2</text>
+    </g>
+
+    <g>
+      <rect x="508" y="40" width="388" height="220" rx="14" fill="#1b1f27" stroke="#2c323d"/>
+      <circle cx="532" cy="62" r="6" fill="#ff5f57"/>
+      <circle cx="552" cy="62" r="6" fill="#febc2e"/>
+      <circle cx="572" cy="62" r="6" fill="#28c840"/>
+      <text x="702" y="67" text-anchor="middle" font-size="14" fill="#8b93a1">Claude personal</text>
+      <rect x="536" y="100" width="280" height="12" rx="6" fill="#2a303b"/>
+      <rect x="536" y="126" width="220" height="12" rx="6" fill="#2a303b"/>
+      <rect x="536" y="152" width="260" height="12" rx="6" fill="#2a303b"/>
+      <rect x="536" y="196" width="332" height="36" rx="10" fill="#232832" stroke="#2f3643"/>
+      <text x="552" y="219" font-size="13" fill="#6f7886">ada@gmail.com</text>
+      <circle cx="848" cy="244" r="38" fill="#219E4F" stroke="#ffffff" stroke-width="5"/>
+      <text x="848" y="259" text-anchor="middle" font-size="42" font-weight="800" fill="#ffffff">3</text>
+    </g>
+
+    <rect x="64" y="296" width="832" height="44" rx="12" fill="#0a0c10" stroke="#252a33"/>
+    <text x="88" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#8b93a1">$</text>
+    <text x="108" y="324" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#e6e9ef">claude-profiles add work &amp;&amp; claude-profiles add personal</text>
+  </g>
+</svg>
