@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax
+        run: bash -n claude-profiles tests/smoke.sh
+      - name: CLI starts
+        run: |
+          ./claude-profiles version
+          ./claude-profiles help
+      - name: No em dash characters
+        run: |
+          if grep -rn $'\xe2\x80\x94' --exclude-dir=.git .; then exit 1; fi
