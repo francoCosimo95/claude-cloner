@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-06
+
+### Fixed
+
+- `list` flags a profile that runs without its own data folder, and `open` refuses to start another one. This can happen when Claude updates a copy by itself and restarts it.
+- The badge icon is restored by `open` and `update` when it was lost, for example after Claude replaced the app copy.
+
 ## [0.4.0] - 2026-11-06
 
 ### Added

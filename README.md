@@ -200,6 +200,11 @@ It looks like one, but on APFS (the default on every recent Mac) the copy is a c
 **Do profiles update themselves?**
 Opening one from its launcher checks your installed Claude first and rebuilds when yours is newer. A profile that is already running is left alone until you close it. You can also run `cloner update` any time.
 
+Claude can also update a copy by itself. When that happens the copy may restart without its data folder and without its badge icon. `cloner list` then shows `running on wrong data`, and `cloner open` refuses to start a second one. Quit the profile and open it again from its launcher: it gets its own data back, and the badge icon is put back too.
+
+**I opened a profile and I am signed in as my main account. Why?**
+The profile is probably running on the data of your regular Claude, see the question above. If it is not, remember that signing in opens your browser, and the browser may approve the account it is already signed in with. Use a private window or switch account on the browser page.
+
 **Why does the Dock still say "Claude"?**
 The Dock label comes from the app's own metadata, and editing that breaks the app. The badge on the icon is how you tell instances apart.
 

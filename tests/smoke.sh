@@ -170,4 +170,30 @@ pass "copy works between profiles"
 "$CLI" copy 1 99 >/dev/null 2>&1 && fail "missing destination should fail"
 pass "copy rejects bad input"
 
+FAKE_BIN="$CLAUDE_CLONER_HOME/profiles/2/Claude.app/Contents/MacOS/Claude"
+printf '#!/bin/bash\nsleep 30\n' >"$FAKE_BIN"
+
+"$FAKE_BIN" >/dev/null 2>&1 &
+SLEEPER=$!
+sleep 1
+"$CLI" list | awk '$1 == 2' | grep -q "wrong data" || fail "a profile started without its data folder should be flagged"
+"$CLI" open 2 >/dev/null 2>&1 && fail "open should refuse while the profile runs on the wrong data"
+kill "$SLEEPER" 2>/dev/null || true
+wait "$SLEEPER" 2>/dev/null || true
+pass "profile running without its data folder is flagged and not reopened"
+
+"$FAKE_BIN" --user-data-dir="$CLAUDE_CLONER_HOME/profiles/2/data" >/dev/null 2>&1 &
+SLEEPER=$!
+sleep 1
+"$CLI" list | awk '$1 == 2' | grep -q "running$" || fail "a correctly started profile should show as running"
+"$CLI" list | awk '$1 == 2' | grep -q "wrong data" && fail "a correctly started profile must not be flagged"
+kill "$SLEEPER" 2>/dev/null || true
+wait "$SLEEPER" 2>/dev/null || true
+pass "correctly started profile is not flagged"
+
+rm -f "$CLAUDE_CLONER_HOME/profiles/7/Claude.app/"$'Icon\r'
+"$CLI" update 7 >/dev/null
+[ -e "$CLAUDE_CLONER_HOME/profiles/7/Claude.app/"$'Icon\r' ] || fail "badge icon was not restored"
+pass "update restores a lost badge icon"
+
 echo "$PASSED checks passed"
