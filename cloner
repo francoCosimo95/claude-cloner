@@ -1,9 +1,23 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="1.0.1"
+VERSION="1.1.0"
 ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
-APPS_DIR="${CLAUDE_CLONER_APPS:-$HOME/Applications}"
+if [ -n "${CLAUDE_CLONER_APPS:-}" ]; then
+  APPS_DIR="$CLAUDE_CLONER_APPS"
+elif [ -w /Applications ]; then
+  APPS_DIR="/Applications"
+else
+  APPS_DIR="$HOME/Applications"
+fi
+if [ -n "${CLAUDE_CLONER_LEGACY_APPS+x}" ]; then
+  LEGACY_APPS="$CLAUDE_CLONER_LEGACY_APPS"
+elif [ -z "${CLAUDE_CLONER_APPS:-}" ]; then
+  LEGACY_APPS="$HOME/Applications"
+else
+  LEGACY_APPS=""
+fi
+
 SOURCE_APP="${CLAUDE_CLONER_SOURCE:-/Applications/Claude.app}"
 MAIN_CONFIG="${CLAUDE_CLONER_MAIN_CONFIG:-$HOME/.claude}"
 MAIN_SUPPORT="${CLAUDE_CLONER_MAIN_SUPPORT:-$HOME/Library/Application Support/Claude}"
@@ -331,6 +345,17 @@ EOF
   "$LSREGISTER" -f "$app" >/dev/null 2>&1 || true
 }
 
+migrate_launcher() {
+  local old new
+  [ -n "$LEGACY_APPS" ] || return 0
+  old="$LEGACY_APPS/Claude $1.app"
+  new="$(launcher_path "$1")"
+  if [ "$old" != "$new" ] && [ -d "$old" ] && [ ! -e "$new" ]; then
+    create_launcher "$1"
+    rm -rf "$old"
+  fi
+}
+
 cmd_add() {
   local number=""
   [ $# -le 1 ] || die "usage: cloner add [number]"
@@ -352,7 +377,7 @@ cmd_add() {
   echo "Profile $number is ready."
   echo
   echo "Next steps:"
-  echo "  1. Open it from Claude $number in Spotlight or Launchpad, or run: cloner open $number"
+  echo "  1. Open it from Claude $number in Spotlight, Launchpad or $APPS_DIR, or run: cloner open $number"
   echo "     To keep it in the Dock, drag Claude $number from $APPS_DIR into the Dock."
   echo "     Do not use \"Keep in Dock\" on the running icon: that pins the copy itself, which starts on your regular Claude data."
   echo "  2. Sign in with the account you want for this profile."
@@ -364,6 +389,7 @@ cmd_open() {
   local dir
   [ $# -eq 1 ] || die "usage: cloner open <number>"
   require_profile "$1"
+  migrate_launcher "$1"
   require_source
   dir="$(profile_dir "$1")"
   if is_misplaced "$dir"; then
@@ -380,6 +406,7 @@ cmd_open() {
 update_one() {
   local number="$1" force="$2" dir
   dir="$(profile_dir "$number")"
+  migrate_launcher "$number"
   ensure_icon "$number"
   ensure_lock "$number"
   if is_running "$dir"; then
@@ -446,6 +473,9 @@ cmd_remove() {
   is_running "$dir" && die "profile $number is running, close it first"
   unlock_app "$dir/Claude.app"
   rm -rf "$(launcher_path "$number")"
+  if [ -n "$LEGACY_APPS" ]; then
+    rm -rf "$LEGACY_APPS/Claude $number.app"
+  fi
   if [ "$keep" = "yes" ]; then
     rm -rf "$dir/Claude.app" "$dir/icon.icns" "$dir/badge"
     echo "Profile $number removed. Its login and data are kept in $dir, and come back if you add $number again."

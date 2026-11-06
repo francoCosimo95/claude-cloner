@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-06
+
+### Changed
+
+- Launcher apps are now created in /Applications, next to Claude, when that folder is writable, and in ~/Applications otherwise. `open` and `update` move launchers made earlier, and `remove` cleans up both places.
+
 ## [1.0.1] - 2026-11-06
 
 ### Fixed

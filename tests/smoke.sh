@@ -9,6 +9,8 @@ trap 'chflags -R nouchg "$WORK" 2>/dev/null; rm -rf "$WORK"' EXIT
 export CLAUDE_CLONER_HOME="$WORK/home"
 export CLAUDE_CLONER_APPS="$WORK/apps"
 export CLAUDE_CLONER_SOURCE="$WORK/source/Claude.app"
+export CLAUDE_CLONER_LEGACY_APPS="$WORK/legacy"
+mkdir -p "$CLAUDE_CLONER_LEGACY_APPS"
 mkdir -p "$CLAUDE_CLONER_APPS"
 
 ICON="/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericApplicationIcon.icns"
@@ -216,5 +218,11 @@ ls -ldO "$APP2" | grep -q uchg || fail "the app copy should be locked"
 mv "$APP2" "$APP2.moved" 2>/dev/null && fail "a locked app copy must not be movable"
 ls -ldO "$CLAUDE_CLONER_HOME/profiles/7/Claude.app" | grep -q uchg || fail "restoring the icon should lock the copy again"
 pass "app copy is locked against being replaced"
+
+mv "$CLAUDE_CLONER_APPS/Claude 7.app" "$CLAUDE_CLONER_LEGACY_APPS/Claude 7.app"
+"$CLI" update 7 >/dev/null
+[ -d "$CLAUDE_CLONER_APPS/Claude 7.app" ] || fail "an old launcher should move to the current folder"
+[ ! -e "$CLAUDE_CLONER_LEGACY_APPS/Claude 7.app" ] || fail "the old launcher should be removed after moving"
+pass "update moves an old launcher next to the others"
 
 echo "$PASSED checks passed"
