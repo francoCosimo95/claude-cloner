@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="0.1.0"
+VERSION="0.2.0"
 ROOT="${CLAUDE_PROFILES_HOME:-$HOME/.claude-profiles}"
 APPS_DIR="${CLAUDE_PROFILES_APPS:-$HOME/Applications}"
 SOURCE_APP="${CLAUDE_PROFILES_SOURCE:-/Applications/Claude.app}"
@@ -18,14 +18,15 @@ usage() {
 claude-profiles $VERSION
 
 Run several Claude desktop instances side by side, each with its own login.
+Profiles are numbered from 2 (your regular Claude is the first one).
 
 Usage:
-  claude-profiles add <name> [--badge TEXT]   create a profile and its launcher app
-  claude-profiles open <name>                 open a profile (updates it first if needed)
-  claude-profiles list                        show profiles, versions and state
-  claude-profiles update [name] [--force]     refresh profile copies from the installed Claude
-  claude-profiles remove <name> [--purge]     delete a profile (--purge also deletes its login and data)
-  claude-profiles cli <name> [args...]        run the Claude Code CLI with the profile's own login
+  claude-profiles add [number]                   create a profile: the next free number, or the one you give
+  claude-profiles open <number>                  open a profile (updates it first if needed)
+  claude-profiles list                           show profiles, versions and state
+  claude-profiles update [number] [--force]      refresh profile copies from the installed Claude
+  claude-profiles remove <number> [--keep-data]  delete a profile, including its login and data
+  claude-profiles cli <number> [args...]         run the Claude Code CLI with the profile's own login
   claude-profiles version
 
 Launcher apps are created in $APPS_DIR.
@@ -41,11 +42,11 @@ require_source() {
   [ -d "$SOURCE_APP" ] || die "Claude desktop not found at $SOURCE_APP"
 }
 
-valid_name() {
+valid_number() {
   case "$1" in
-    "" | bin | -* | *[!A-Za-z0-9._-]*) return 1 ;;
+    "" | *[!0-9]* | 0*) return 1 ;;
   esac
-  return 0
+  [ "${#1}" -le 3 ] && [ "$1" -ge 2 ]
 }
 
 profile_dir() {
@@ -57,12 +58,29 @@ profile_exists() {
 }
 
 require_profile() {
-  valid_name "$1" || die "invalid profile name: '$1'"
-  profile_exists "$1" || die "no profile named '$1' (see: claude-profiles list)"
+  valid_number "$1" || die "invalid profile number: '$1' (profiles start at 2)"
+  profile_exists "$1" || die "no profile $1 (see: claude-profiles list)"
 }
 
 launcher_path() {
   echo "$APPS_DIR/Claude $1.app"
+}
+
+profile_numbers() {
+  local file
+  [ -d "$ROOT/profiles" ] || return 0
+  for file in "$ROOT"/profiles/*/badge; do
+    [ -f "$file" ] || continue
+    basename "$(dirname "$file")"
+  done | sort -n
+}
+
+next_number() {
+  local n=2
+  while profile_exists "$n" || [ -d "$(launcher_path "$n")" ]; do
+    n=$((n + 1))
+  done
+  echo "$n"
 }
 
 app_version() {
@@ -203,11 +221,10 @@ install_runtime() {
 }
 
 rebuild_profile() {
-  local dir badge
+  local dir
   dir="$(profile_dir "$1")"
-  badge="$(cat "$dir/badge")"
   copy_app "$SOURCE_APP" "$dir/Claude.app"
-  build_icon "$badge" "$dir/icon.icns"
+  build_icon "$1" "$dir/icon.icns"
   run_jxa seticon "$dir/icon.icns" "$dir/Claude.app"
 }
 
@@ -225,16 +242,15 @@ should_rebuild() {
 }
 
 create_launcher() {
-  local name="$1" dir app bundle_id
-  dir="$(profile_dir "$name")"
-  app="$(launcher_path "$name")"
-  bundle_id="io.github.claude-profiles.$(printf '%s' "$name" | tr -c 'A-Za-z0-9.-' '-')"
+  local number="$1" dir app
+  dir="$(profile_dir "$number")"
+  app="$(launcher_path "$number")"
   rm -rf "$app"
   mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
   cp "$dir/icon.icns" "$app/Contents/Resources/icon.icns"
   cat >"$app/Contents/MacOS/launcher" <<EOF
 #!/bin/bash
-exec "$RUNTIME" open "$name"
+exec "$RUNTIME" open "$number"
 EOF
   chmod +x "$app/Contents/MacOS/launcher"
   cat >"$app/Contents/Info.plist" <<EOF
@@ -243,9 +259,9 @@ EOF
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key><string>launcher</string>
-  <key>CFBundleIdentifier</key><string>$bundle_id</string>
-  <key>CFBundleName</key><string>Claude $name</string>
-  <key>CFBundleDisplayName</key><string>Claude $name</string>
+  <key>CFBundleIdentifier</key><string>io.github.claude-profiles.p$number</string>
+  <key>CFBundleName</key><string>Claude $number</string>
+  <key>CFBundleDisplayName</key><string>Claude $number</string>
   <key>CFBundleIconFile</key><string>icon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleVersion</key><string>1</string>
@@ -258,47 +274,31 @@ EOF
 }
 
 cmd_add() {
-  local name="" badge="" count
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --badge)
-        [ $# -ge 2 ] || die "--badge needs a value"
-        badge="$2"
-        shift 2
-        ;;
-      -*) die "unknown option: $1" ;;
-      *)
-        [ -z "$name" ] || die "unexpected argument: $1"
-        name="$1"
-        shift
-        ;;
-    esac
-  done
-  [ -n "$name" ] || die "usage: claude-profiles add <name> [--badge TEXT]"
-  valid_name "$name" || die "invalid profile name: '$name' (use letters, digits, dot, dash, underscore)"
-  profile_exists "$name" && die "profile '$name' already exists"
-  require_source
-  if [ -z "$badge" ]; then
-    count=0
-    if [ -d "$ROOT/profiles" ]; then
-      count="$(find "$ROOT/profiles" -mindepth 2 -maxdepth 2 -name badge | wc -l | tr -d ' ')"
-    fi
-    badge="$((count + 2))"
+  local number=""
+  [ $# -le 1 ] || die "usage: claude-profiles add [number]"
+  if [ $# -eq 1 ]; then
+    number="$1"
+    valid_number "$number" || die "invalid profile number: '$number' (profiles start at 2)"
+    profile_exists "$number" && die "profile $number already exists"
   fi
-  mkdir -p "$(profile_dir "$name")/data" "$(profile_dir "$name")/cli"
-  printf '%s\n' "$badge" >"$(profile_dir "$name")/badge"
+  require_source
+  if [ -z "$number" ]; then
+    number="$(next_number)"
+  fi
+  mkdir -p "$(profile_dir "$number")/data" "$(profile_dir "$number")/cli"
+  printf '%s\n' "$number" >"$(profile_dir "$number")/badge"
   install_runtime
   echo "Copying Claude (this can take a moment)..."
-  rebuild_profile "$name"
-  create_launcher "$name"
-  echo "Profile '$name' is ready."
-  echo "Open it from: $(launcher_path "$name")"
-  echo "or run:       claude-profiles open $name"
+  rebuild_profile "$number"
+  create_launcher "$number"
+  echo "Profile $number is ready."
+  echo "Open it from: $(launcher_path "$number")"
+  echo "or run:       claude-profiles open $number"
 }
 
 cmd_open() {
   local dir
-  [ $# -eq 1 ] || die "usage: claude-profiles open <name>"
+  [ $# -eq 1 ] || die "usage: claude-profiles open <number>"
   require_profile "$1"
   require_source
   dir="$(profile_dir "$1")"
@@ -309,90 +309,85 @@ cmd_open() {
 }
 
 update_one() {
-  local name="$1" force="$2" dir
-  dir="$(profile_dir "$name")"
+  local number="$1" force="$2" dir
+  dir="$(profile_dir "$number")"
   if is_running "$dir"; then
-    echo "$name: running, close it first"
+    echo "$number: running, close it first"
     return 0
   fi
-  if [ "$force" = "yes" ] || should_rebuild "$name"; then
-    rebuild_profile "$name"
-    echo "$name: updated to $(app_version "$dir/Claude.app")"
+  if [ "$force" = "yes" ] || should_rebuild "$number"; then
+    rebuild_profile "$number"
+    echo "$number: updated to $(app_version "$dir/Claude.app")"
   else
-    echo "$name: up to date ($(app_version "$dir/Claude.app"))"
+    echo "$number: up to date ($(app_version "$dir/Claude.app"))"
   fi
 }
 
 cmd_update() {
-  local name="" force="no" arg badge_file
+  local number="" force="no" arg
   for arg in "$@"; do
     case "$arg" in
       --force) force="yes" ;;
       -*) die "unknown option: $arg" ;;
-      *) name="$arg" ;;
+      *) number="$arg" ;;
     esac
   done
   require_source
   install_runtime
-  if [ -n "$name" ]; then
-    require_profile "$name"
-    update_one "$name" "$force"
+  if [ -n "$number" ]; then
+    require_profile "$number"
+    update_one "$number" "$force"
     return 0
   fi
-  [ -d "$ROOT/profiles" ] || return 0
-  for badge_file in "$ROOT"/profiles/*/badge; do
-    [ -f "$badge_file" ] || continue
-    update_one "$(basename "$(dirname "$badge_file")")" "$force"
+  for number in $(profile_numbers); do
+    update_one "$number" "$force"
   done
 }
 
 cmd_list() {
-  local badge_file name dir state
-  printf '%-20s %-6s %-12s %s\n' NAME BADGE VERSION STATE
-  [ -d "$ROOT/profiles" ] || return 0
-  for badge_file in "$ROOT"/profiles/*/badge; do
-    [ -f "$badge_file" ] || continue
-    dir="$(dirname "$badge_file")"
-    name="$(basename "$dir")"
+  local number dir state
+  printf '%-9s %-12s %s\n' PROFILE VERSION STATE
+  for number in $(profile_numbers); do
+    dir="$(profile_dir "$number")"
     state="closed"
     if is_running "$dir"; then
       state="running"
     fi
-    printf '%-20s %-6s %-12s %s\n' "$name" "$(cat "$badge_file")" "$(app_version "$dir/Claude.app")" "$state"
+    printf '%-9s %-12s %s\n' "$number" "$(app_version "$dir/Claude.app")" "$state"
   done
 }
 
 cmd_remove() {
-  local name="" purge="no" arg dir
+  local number="" keep="no" arg dir
   for arg in "$@"; do
     case "$arg" in
-      --purge) purge="yes" ;;
+      --keep-data) keep="yes" ;;
       -*) die "unknown option: $arg" ;;
-      *) name="$arg" ;;
+      *) number="$arg" ;;
     esac
   done
-  [ -n "$name" ] || die "usage: claude-profiles remove <name> [--purge]"
-  valid_name "$name" || die "invalid profile name: '$name'"
-  dir="$(profile_dir "$name")"
-  [ -d "$dir" ] || die "no profile named '$name' (see: claude-profiles list)"
-  is_running "$dir" && die "profile '$name' is running, close it first"
-  rm -rf "$(launcher_path "$name")"
-  if [ "$purge" = "yes" ]; then
-    rm -rf "$dir"
-    echo "Profile '$name' removed, including its login and data."
-  else
+  [ -n "$number" ] || die "usage: claude-profiles remove <number> [--keep-data]"
+  valid_number "$number" || die "invalid profile number: '$number' (profiles start at 2)"
+  dir="$(profile_dir "$number")"
+  [ -d "$dir" ] || die "no profile $number (see: claude-profiles list)"
+  is_running "$dir" && die "profile $number is running, close it first"
+  rm -rf "$(launcher_path "$number")"
+  if [ "$keep" = "yes" ]; then
     rm -rf "$dir/Claude.app" "$dir/icon.icns" "$dir/badge"
-    echo "Profile '$name' removed. Its login and data are kept in $dir (use --purge to delete them)."
+    echo "Profile $number removed. Its login and data are kept in $dir, and come back if you add $number again."
+  else
+    rm -rf "$dir"
+    echo "Profile $number deleted, including its login and data."
   fi
 }
 
 cmd_cli() {
-  [ $# -ge 1 ] || die "usage: claude-profiles cli <name> [args...]"
-  local name="$1"
+  [ $# -ge 1 ] || die "usage: claude-profiles cli <number> [args...]"
+  local number="$1"
   shift
-  require_profile "$name"
+  require_profile "$number"
   command -v claude >/dev/null 2>&1 || die "the 'claude' command was not found in PATH"
-  CLAUDE_CONFIG_DIR="$(profile_dir "$name")/cli" exec claude "$@"
+  CLAUDE_CONFIG_DIR="$(profile_dir "$number")/cli" exec claude "$@"
 }
 
 main() {
