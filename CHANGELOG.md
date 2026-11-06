@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- The README image shows two Claude chat windows with the app icon and badges, and the demo video link was removed from the README.
+
 ## [0.4.2] - 2026-11-06
 
 ### Added

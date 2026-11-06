@@ -25,14 +25,6 @@ An open source side project by [Cosimo Franco](https://github.com/francoCosimo95
 
 </div>
 
-## Watch the 28 second demo
-
-<p align="center">
-  <a href="https://github.com/francoCosimo95/claude-cloner/releases/download/v0.4.2/claude-cloner-demo.mp4">
-    <img src="docs/video-poster.svg" alt="Watch the claude-cloner demo video" width="720">
-  </a>
-</p>
-
 ## Why
 
 Claude for Mac keeps one login. If you have a work account and a personal one, you sign out and back in all day, and you lose your place every time.
@@ -302,6 +294,8 @@ It uses a fake Claude app in a temp folder, so your real Claude and your real pr
 ## Disclaimer
 
 This is a personal project and an unofficial community tool. It is not affiliated with or endorsed by Anthropic. "Claude" is a trademark of Anthropic.
+
+The Claude app icon in the images belongs to Anthropic. It is shown only to make clear what this tool works with.
 
 It is meant for people who legitimately use more than one account, like a work account and a personal one. Use it in line with the terms of the services you sign in to. It does not copy or redistribute anything: each copy is made on your own Mac from the app you installed.
 
