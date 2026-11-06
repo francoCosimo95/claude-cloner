@@ -4,6 +4,7 @@
 
 ### Changed
 
+- The README is shorter and plainer: fewer sections and warnings, no diagram.
 - The badge colors image shows the Claude icon with each numbered badge.
 - The demo video lives in `docs/claude-cloner-demo.mp4`, attached to the project and not to a release.
 
