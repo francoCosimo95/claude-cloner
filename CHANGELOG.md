@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-11-06
+
+### Fixed
+
+- Launchers now show an error in a dialog when `open` fails, instead of doing nothing when you click them in the Dock. `open` and `update` refresh launchers made by earlier versions.
+
 ## [1.2.2] - 2026-11-06
 
 ### Fixed

@@ -244,4 +244,11 @@ DOCK_OUT="$(defaults read "$CLAUDE_CLONER_DOCK_DOMAIN" persistent-apps 2>/dev/nu
 case "$DOCK_OUT" in *"Claude%207.app"*) fail "remove should unpin the launcher" ;; esac
 pass "remove unpins the launcher"
 
+LAUNCH3="$CLAUDE_CLONER_APPS/Claude 3.app/Contents/MacOS/launcher"
+grep -q "display alert" "$LAUNCH3" || fail "a new launcher should show errors in a dialog"
+printf '#!/bin/bash\nexec "x" open "3"\n' >"$LAUNCH3"
+"$CLI" update 3 >/dev/null
+grep -q "display alert" "$LAUNCH3" || fail "update should refresh an old launcher"
+pass "launchers show errors and old ones are refreshed"
+
 echo "$PASSED checks passed"

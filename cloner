@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION="1.2.2"
+VERSION="1.2.3"
 ROOT="${CLAUDE_CLONER_HOME:-$HOME/.claude-cloner}"
 if [ -n "${CLAUDE_CLONER_APPS:-}" ]; then
   APPS_DIR="$CLAUDE_CLONER_APPS"
@@ -323,7 +323,7 @@ create_launcher() {
   cp "$dir/icon.icns" "$app/Contents/Resources/icon.icns"
   cat >"$app/Contents/MacOS/launcher" <<EOF
 #!/bin/bash
-exec "$RUNTIME" open "$number"
+out="\$("$RUNTIME" open "$number" 2>&1)" || /usr/bin/osascript -e 'on run argv' -e 'display alert (item 1 of argv) message (item 2 of argv)' -e 'end run' "Claude $number" "\$out" >/dev/null 2>&1
 EOF
   chmod +x "$app/Contents/MacOS/launcher"
   cat >"$app/Contents/Info.plist" <<EOF
@@ -354,6 +354,14 @@ migrate_launcher() {
   if [ "$old" != "$new" ] && [ -d "$old" ] && [ ! -e "$new" ]; then
     create_launcher "$1"
     rm -rf "$old"
+  fi
+}
+
+refresh_launcher() {
+  local script
+  script="$(launcher_path "$1")/Contents/MacOS/launcher"
+  if [ -f "$script" ] && ! grep -q "display alert" "$script"; then
+    create_launcher "$1"
   fi
 }
 
@@ -467,6 +475,7 @@ cmd_open() {
   [ $# -eq 1 ] || die "usage: cloner open <number>"
   require_profile "$1"
   migrate_launcher "$1"
+  refresh_launcher "$1"
   require_source
   dir="$(profile_dir "$1")"
   if is_misplaced "$dir"; then
@@ -485,6 +494,7 @@ update_one() {
   local number="$1" force="$2" dir
   dir="$(profile_dir "$number")"
   migrate_launcher "$number"
+  refresh_launcher "$number"
   check_owner "$number"
   ensure_unlocked "$number"
   ensure_icon "$number"
